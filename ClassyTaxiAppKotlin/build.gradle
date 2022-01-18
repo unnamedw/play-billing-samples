@@ -69,11 +69,31 @@ buildscript {
         gradleGoogleVersion = '4.3.10'
         gradleToolsVersion = '7.1.2'
         kotlinVersion = '1.6.10'
-        multidex_version = "2.0.1"
+        multidex_version = '2.0.1'
 
         // Testing versions.
         jUnitVersion = '4.13.2'
+        hamcrestVersion = '2.2'
+        mockitoVersion = '4.3.0'
+        androidXTestCoreVersion = '1.4.0'
+        robolectricVersion = '4.7.3'
+        androidXTestExtKotlinRunnerVersion = '1.1.3'
+        archTestingVersion = '2.1.0'
+
+        // jaxb versions for compiling for JDK9+
+        jdk9DepsVersion = '1.0'
+        jaxbApiVersion = '2.3.1'
+        jaxbCoreVersion = '2.3.0.1'
+        jaxbImpl = '2.3.2'
     }
+    // Testing versions.
+    ext.jUnitVersion = '4.13.1'
+    ext.hamcrestVersion = '2.2'
+    ext.mockitoVersion = '4.3.0'
+    ext.androidXTestCoreVersion = '1.4.0'
+    ext.robolectricVersion = '4.7.3'
+    ext.androidXTestExtKotlinRunnerVersion = '1.1.3'
+    ext.archTestingVersion = '2.1.0'
 
     repositories {
         google()
