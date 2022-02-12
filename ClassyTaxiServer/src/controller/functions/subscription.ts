@@ -74,6 +74,10 @@ export const subscription_register_v2 = functions.https.onRequest(async (request
       const uid = decodedToken.uid;
       const token = request.body.purchaseToken;
 
+      if (!token || !uid || !sku) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters!');
+      }
+      
       try {
         await playBilling.purchases().registerToUserAccount(
           PACKAGE_NAME,
