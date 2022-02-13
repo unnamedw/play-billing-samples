@@ -18,6 +18,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'kotlin-android-extensions'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     compileSdkVersion androidCompileSdkVersion as Integer
@@ -83,44 +84,36 @@ dependencies {
     // Google Play Billing Library.
     implementation "com.android.billingclient:billing:$billingVersion"
 
-    // Android Support Library.
-    implementation "com.android.support:appcompat-v7:$supportVersion"
-    implementation "com.android.support:design:$supportVersion"
-    implementation "com.android.support:cardview-v7:$supportVersion"
-    implementation "com.android.support:support-v4:$supportVersion"
-    implementation "com.google.code.gson:gson:$gsonVersion"
-    implementation "com.android.support:preference-leanback-v17:$supportVersion"
+    // AndroidX Library.
+    implementation "androidx.appcompat:appcompat:1.4.1"
+    implementation "androidx.fragment:fragment-ktx:$fragmentVersion"
+    implementation "androidx.cardview:cardview:1.0.0"
+    implementation "androidx.leanback:leanback-preference:1.0.0"
 
-    // Glide image library.
-    implementation("com.github.bumptech.glide:glide:$glideVersion") {
-        exclude group: "com.android.support"
-    }
+    implementation "com.google.android.material:material:$materialUiVersion"
 
-    implementation "com.android.support:support-fragment:$fragmentVersion"
+    // MultiDex
+    implementation "androidx.multidex:multidex:$multidex_version"
 
     implementation "com.google.android.gms:play-services-auth:$playServicesVersion"
+    implementation "com.google.code.gson:gson:$gsonVersion"
 
-    implementation "androidx.multidex:multidex:$multidex_version"
+    // Glide image library.
+    implementation "com.github.bumptech.glide:glide:$glideVersion"
 
     // Firebase Bill of Materials
     implementation platform("com.google.firebase:firebase-bom:$firebaseBomVersion")
-
     // Declare the dependency for the Firebase Authentication library
     // When using the BoM, you don't specify versions in Firebase library dependencies
     implementation 'com.google.firebase:firebase-auth-ktx'
-
     implementation 'com.google.firebase:firebase-messaging-ktx'
     implementation 'com.google.firebase:firebase-analytics-ktx'
 
     // FirebaseUI Auth library.
     implementation "com.firebaseui:firebase-ui-auth:$firebaseUiVersion"
 
-    // Kotlin library.
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-
-
-    implementation "com.google.android.material:material:$materialUiVersion"
-
+    //Room
+    implementation "androidx.room:room-ktx:$androidXRoomVersion"
     // Kotlin annotation processor for Room.
     kapt "androidx.room:room-compiler:$androidXRoomVersion"
 
@@ -145,13 +138,4 @@ dependencies {
     implementation "com.squareup.retrofit2:retrofit:$retrofitSuiteVersion"
     implementation "com.squareup.retrofit2:converter-gson:$retrofitSuiteVersion"
     implementation "com.squareup.retrofit2:converter-scalars:$retrofitSuiteVersion"
-
-    // MultiDex
-    implementation "androidx.multidex:multidex:$multidex_version"
-
-    //Room
-    implementation "androidx.room:room-ktx:$androidXRoomVersion"
 }
-
-apply plugin: 'com.google.gms.google-services'
-

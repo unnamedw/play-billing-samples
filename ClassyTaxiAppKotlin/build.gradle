@@ -44,8 +44,8 @@ ext {
 
     // Android version information.
     androidMinimumSdkVersion = 17
-    androidTargetSdkVersion = 30
-    androidCompileSdkVersion = 30
+    androidTargetSdkVersion = 31
+    androidCompileSdkVersion = 31
 }
 
 buildscript {
@@ -56,15 +56,14 @@ buildscript {
     ext.glideVersion = '4.11.0'
     ext.gsonVersion = '2.8.6'
     ext.jsonVersion = '20140107'
-    ext.supportVersion = '28.0.0'
     ext.firebaseBomVersion = '28.4.1'
-    ext.playServicesVersion = '19.2.0'
+    ext.playServicesVersion = '20.1.0'
     ext.materialUiVersion = '1.4.0'
     ext.retrofitSuiteVersion = '2.9.0'
-    ext.fragmentVersion = '28.0.0'
+    ext.fragmentVersion = '1.4.1'
 
     // Tools versions.
-    ext.gradleGoogleVersion = '4.3.0'
+    ext.gradleGoogleVersion = '4.3.10'
     ext.gradleToolsVersion = '7.0.2'
     ext.kotlinVersion = '1.6.10'
     ext.multidex_version = "2.0.1"

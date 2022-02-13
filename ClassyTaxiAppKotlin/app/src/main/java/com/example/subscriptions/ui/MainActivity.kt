@@ -22,6 +22,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
@@ -52,8 +53,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
 
-        private const val RC_SIGN_IN = 0
-
         const val HOME_PAGER_INDEX = 0
         const val PREMIUM_PAGER_INDEX = 1
         const val SETTINGS_PAGER_INDEX = 2
@@ -66,6 +65,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var authenticationViewModel: FirebaseUserViewModel
     private lateinit var billingViewModel: BillingViewModel
     private lateinit var subscriptionViewModel: SubscriptionStatusViewModel
+
+    private val registerResult = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (it.resultCode == RESULT_OK) {
+            Log.d(TAG, "Sign-in SUCCESS!")
+            authenticationViewModel.updateFirebaseUser()
+        } else {
+            Log.d(TAG, "Sign-in FAILED!")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -206,13 +216,10 @@ class MainActivity : AppCompatActivity() {
             AuthUI.IdpConfig.EmailBuilder().build(),
             AuthUI.IdpConfig.GoogleBuilder().build()
         )
-        startActivityForResult(
-            AuthUI.getInstance()
-                .createSignInIntentBuilder()
-                .setAvailableProviders(providers)
-                .build(),
-            RC_SIGN_IN
-        )
+      registerResult.launch(AuthUI.getInstance()
+          .createSignInIntentBuilder()
+          .setAvailableProviders(providers)
+          .build())
     }
 
     /**
@@ -225,29 +232,6 @@ class MainActivity : AppCompatActivity() {
             authenticationViewModel.updateFirebaseUser()
         }
     }
-
-    /**
-     * Receive Activity result, including sign-in result.
-     */
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        when (requestCode) {
-            RC_SIGN_IN -> {
-                // If sign-in is successful, update ViewModel.
-                if (resultCode == RESULT_OK) {
-                    Log.d(TAG, "Sign-in SUCCESS!")
-                    authenticationViewModel.updateFirebaseUser()
-                } else {
-                    Log.d(TAG, "Sign-in FAILED!")
-                }
-            }
-            else -> {
-                Log.e(TAG, "Unrecognized request code: $requestCode")
-            }
-        }
-    }
-
 
     /**
      * A [FragmentPagerAdapter] that returns a fragment corresponding to
