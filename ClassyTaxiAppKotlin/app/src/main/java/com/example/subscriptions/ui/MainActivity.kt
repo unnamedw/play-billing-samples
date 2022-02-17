@@ -33,10 +33,10 @@ import com.example.subscriptions.Constants
 import com.example.subscriptions.R
 import com.example.subscriptions.SubApp
 import com.example.subscriptions.billing.BillingClientLifecycle
+import com.example.subscriptions.databinding.ActivityMainBinding
 import com.firebase.ui.auth.AuthUI
 import com.google.android.material.tabs.TabLayout
 import com.google.firebase.auth.FirebaseUser
-import kotlinx.android.synthetic.main.activity_main.*
 
 /**
  * [MainActivity] contains 3 [TabFragment] objects.
@@ -79,15 +79,19 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        setSupportActionBar(toolbar)
-        // Create the adapter that will return a fragment for each of the three
-        // primary sections of the activity.
-        sectionsPagerAdapter = SectionsPagerAdapter(supportFragmentManager)
-        // Set up the ViewPager with the sections adapter.
-        container.adapter = sectionsPagerAdapter
-        container.addOnPageChangeListener(TabLayout.TabLayoutOnPageChangeListener(tabs))
-        tabs.addOnTabSelectedListener(TabLayout.ViewPagerOnTabSelectedListener(container))
+
+        ActivityMainBinding.inflate(layoutInflater).apply {
+            setContentView(root)
+            setSupportActionBar(toolbar)
+
+            // Create the adapter that will return a fragment for each of the three
+            // primary sections of the activity.
+            sectionsPagerAdapter = SectionsPagerAdapter(supportFragmentManager)
+            // Set up the ViewPager with the sections adapter.
+            container.adapter = sectionsPagerAdapter
+            container.addOnPageChangeListener(TabLayout.TabLayoutOnPageChangeListener(tabs))
+            tabs.addOnTabSelectedListener(TabLayout.ViewPagerOnTabSelectedListener(container))
+        }
 
         authenticationViewModel = ViewModelProviders.of(this).get(FirebaseUserViewModel::class.java)
         billingViewModel = ViewModelProviders.of(this).get(BillingViewModel::class.java)
@@ -216,10 +220,12 @@ class MainActivity : AppCompatActivity() {
             AuthUI.IdpConfig.EmailBuilder().build(),
             AuthUI.IdpConfig.GoogleBuilder().build()
         )
-      registerResult.launch(AuthUI.getInstance()
-          .createSignInIntentBuilder()
-          .setAvailableProviders(providers)
-          .build())
+        registerResult.launch(
+            AuthUI.getInstance()
+                .createSignInIntentBuilder()
+                .setAvailableProviders(providers)
+                .build()
+        )
     }
 
     /**

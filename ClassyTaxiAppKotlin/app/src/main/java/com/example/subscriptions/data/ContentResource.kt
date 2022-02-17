@@ -22,9 +22,7 @@ import com.google.gson.JsonSyntaxException
 data class ContentResource(
     val url: String?
 ) {
-
     companion object {
-
         private const val URL_KEY = "url"
 
         /**
@@ -46,7 +44,5 @@ data class ContentResource(
                 null
             }
         }
-
     }
-
 }
