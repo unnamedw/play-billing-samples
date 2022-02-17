@@ -18,12 +18,16 @@ package com.example.subscriptions.data
 
 import android.util.Log
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
+import androidx.lifecycle.MutableLiveData
 import com.android.billingclient.api.Purchase
 import com.example.subscriptions.Constants
 import com.example.subscriptions.billing.BillingClientLifecycle
 import com.example.subscriptions.data.disk.LocalDataSource
 import com.example.subscriptions.data.network.WebDataSource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Repository handling the work with subscriptions.
@@ -31,69 +35,73 @@ import com.example.subscriptions.data.network.WebDataSource
 class DataRepository private constructor(
     private val localDataSource: LocalDataSource,
     private val webDataSource: WebDataSource,
-    private val billingClientLifecycle: BillingClientLifecycle
+    private val billingClientLifecycle: BillingClientLifecycle,
+    // TODO this should be injected externally
+    private val externalScope: CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Default)
 ) {
 
     /**
      * Live data is true when there are pending network requests.
      */
+    // TODO(b/220085084) replace this with StateFlow
     val loading: LiveData<Boolean>
         get() = webDataSource.loading
 
     /**
-     * [MediatorLiveData] to coordinate updates from the database and the network.
-     *
-     * The mediator observes multiple sources. The database source is immediately exposed.
-     * The network source is stored in the database, which will eventually be exposed.
-     * The mediator provides an easy way for us to use LiveData for both the local data source
-     * and the network data source, without implementing a new callback interface.
+     * [MutableLiveData] to coordinate updates from the database and the network.
+     * Intended to be collected by ViewModel
      */
-    val subscriptions = MediatorLiveData<List<SubscriptionStatus>>()
+    val subscriptions = MutableLiveData<List<SubscriptionStatus>>()
 
     /**
-     * Live Data with the basic content.
+     * [MutableLiveData] with the basic content.
+     * Intended to be collected by ViewModel
      */
-    val basicContent = MediatorLiveData<ContentResource>()
+    val basicContent = MutableLiveData<ContentResource?>()
 
     /**
-     * Live Data with the premium content.
+     * [MutableLiveData] with the premium content.
+     * Intended to be collected by ViewModel
      */
-    val premiumContent = MediatorLiveData<ContentResource>()
+    val premiumContent = MutableLiveData<ContentResource?>()
 
     init {
         // Update content from the web.
-        // We are using a MediatorLiveData so that we can clear the data immediately
+        // We are using a MutableLiveData so that we can clear the data immediately
         // when the subscription changes.
-        basicContent.addSource(webDataSource.basicContent) {
+        webDataSource.basicContent.observeForever {
             basicContent.postValue(it)
         }
-        premiumContent.addSource(webDataSource.premiumContent) {
+        webDataSource.premiumContent.observeForever {
             premiumContent.postValue(it)
         }
-        // Database changes are observed by the ViewModel.
-        subscriptions.addSource(localDataSource.subscriptions) {
-            Log.d("Repository", "Subscriptions updated: ${it?.size}")
-            subscriptions.postValue(it)
-        }
+
         // Observed network changes are store in the database.
         // The database changes will propagate to the ViewModel.
         // We could write different logic to ensure that the network call completes when
         // the UI component is inactive.
-        subscriptions.addSource(webDataSource.subscriptions) {
+        webDataSource.subscriptions.observeForever {
+            Log.i(">>>", "webDataSource.subscriptions updated - ${it.size}")
             updateSubscriptionsFromNetwork(it)
         }
+
         // When the list of purchases changes, we need to update the subscription status
         // to indicate whether the subscription is local or not. It is local if the
         // the Google Play Billing APIs return a Purchase record for the SKU. It is not
         // local if there is no record of the subscription on the device.
-        subscriptions.addSource(billingClientLifecycle.purchases) { it ->
+        billingClientLifecycle.purchases.observeForever { purchases ->
             // We only need to update the database if the isLocalPurchase field needs to change.
-            val purchases = it
             subscriptions.value?.let {
-                val subscriptions = it
-                val hasChanged = updateLocalPurchaseTokens(subscriptions, purchases)
+                val hasChanged = updateLocalPurchaseTokens(it, purchases)
                 if (hasChanged) {
-                    localDataSource.updateSubscriptions(subscriptions)
+                    // FIXME temporal impl.
+                    externalScope.launch {
+                        localDataSource.updateSubscriptions(it)
+                        val updatedList = localDataSource.getSubscriptions()
+                        Log.i(">>>", "billingClientLifecycle.purchases - ${updatedList.size}")
+                        subscriptions.postValue(updatedList)
+                    }
                 }
             }
         }
@@ -102,13 +110,19 @@ class DataRepository private constructor(
     fun updateSubscriptionsFromNetwork(remoteSubscriptions: List<SubscriptionStatus>?) {
         val oldSubscriptions = subscriptions.value
         val purchases = billingClientLifecycle.purchases.value
-        val subscriptions =
+        val mergedSubscriptions =
             mergeSubscriptionsAndPurchases(oldSubscriptions, remoteSubscriptions, purchases)
         remoteSubscriptions?.let {
             acknowledgeRegisteredPurchaseTokens(remoteSubscriptions)
         }
+
         // Store the subscription information when it changes.
-        localDataSource.updateSubscriptions(subscriptions)
+        // FIXME temporal impl.
+        externalScope.launch {
+            localDataSource.updateSubscriptions(mergedSubscriptions)
+            val updatedSubs = localDataSource.getSubscriptions()
+            subscriptions.postValue(updatedSubs)
+        }
 
         // Update the content when the subscription changes.
         remoteSubscriptions?.let {
@@ -284,13 +298,15 @@ class DataRepository private constructor(
      * Delete local user data when the user signs out.
      */
     fun deleteLocalUserData() {
-        localDataSource.deleteLocalUserData()
+        // FIXME temporal impl.
+        externalScope.launch {
+            localDataSource.deleteLocalUserData()
+        }
         basicContent.postValue(null)
         premiumContent.postValue(null)
     }
 
     companion object {
-
         @Volatile
         private var INSTANCE: DataRepository? = null
 
@@ -304,5 +320,4 @@ class DataRepository private constructor(
                     .also { INSTANCE = it }
             }
     }
-
 }

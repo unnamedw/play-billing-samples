@@ -37,7 +37,7 @@ class SubApp : Application() {
         get() = AppDatabase.getInstance(this)
 
     private val localDataSource: LocalDataSource
-        get() = LocalDataSource.getInstance(executors, database)
+        get() = LocalDataSource.getInstance(database.subscriptionStatusDao())
 
     private val serverFunctions: ServerFunctions
         get() {

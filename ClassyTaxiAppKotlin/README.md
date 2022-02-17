@@ -142,10 +142,6 @@ Firebase configuration.
 
 ## Build your APK from Android Studio
 
-1. Open Android Studio, select File > Open and pick the root build.gradle file
-
-    * `{project_folder}/build.gradle`
-
 1. Change the `androidApplicationId` to the correct Android package name
 
     * `{project_folder}/gradle.properties`

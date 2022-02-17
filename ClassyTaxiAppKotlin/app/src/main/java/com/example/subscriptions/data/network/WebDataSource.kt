@@ -30,6 +30,7 @@ class WebDataSource private constructor(
     private val executor: Executor,
     private val serverFunctions: ServerFunctions
 ) {
+    // TODO(b/220085084) replace LiveData with StateFlow
 
     /**
      * Live data is true when there are pending network requests.

@@ -16,46 +16,38 @@
 
 package com.example.subscriptions.data.disk
 
-import com.example.subscriptions.AppExecutors
 import com.example.subscriptions.data.SubscriptionStatus
-import com.example.subscriptions.data.disk.db.AppDatabase
-import java.util.concurrent.Executor
+import com.example.subscriptions.data.disk.db.SubscriptionStatusDao
 
 class LocalDataSource private constructor(
-        private val executor: Executor,
-        private val appDatabase: AppDatabase
+    private val subscriptionStatusDao: SubscriptionStatusDao
 ) {
-
     /**
-     * Get the list of subscriptions from the localDataSource and get notified when the data changes.
+     * Get the list of subscriptions from the DAO
      */
-    val subscriptions = appDatabase.subscriptionStatusDao().getAll()
+    suspend fun getSubscriptions() = subscriptionStatusDao.getAll()
 
-    fun updateSubscriptions(subscriptions: List<SubscriptionStatus>) {
-        executor.execute {
-            appDatabase.runInTransaction {
-                // Delete existing subscriptions.
-                appDatabase.subscriptionStatusDao().deleteAll()
-                // Put new subscriptions data into localDataSource.
-                appDatabase.subscriptionStatusDao().insertAll(subscriptions)
-            }
-        }
+    suspend fun updateSubscriptions(subscriptions: List<SubscriptionStatus>) {
+        // Delete existing subscriptions.
+        subscriptionStatusDao.deleteAll()
+        // Put new subscriptions data into localDataSource.
+        subscriptionStatusDao.insertAll(subscriptions)
     }
 
     /**
      * Delete local user data when the user signs out.
      */
-    fun deleteLocalUserData() = updateSubscriptions(listOf())
+    suspend fun deleteLocalUserData() = updateSubscriptions(listOf())
 
     companion object {
 
         @Volatile
         private var INSTANCE: LocalDataSource? = null
 
-        fun getInstance(executors: AppExecutors, database: AppDatabase): LocalDataSource =
-                INSTANCE ?: synchronized(this) {
-                    INSTANCE ?: LocalDataSource(executors.diskIO, database).also { INSTANCE = it }
-                }
+        fun getInstance(subscriptionStatusDao: SubscriptionStatusDao): LocalDataSource =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: LocalDataSource(subscriptionStatusDao).also { INSTANCE = it }
+            }
     }
 
 }

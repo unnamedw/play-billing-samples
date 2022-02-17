@@ -50,7 +50,7 @@ ext {
 
 buildscript {
     // Library versions.
-    ext.androidXRoomVersion = '2.3.0'
+    ext.roomVersion = '2.4.1'
     ext.billingVersion = '4.0.0'
     ext.firebaseUiVersion = '8.0.0'
     ext.glideVersion = '4.13.0'
@@ -75,7 +75,7 @@ buildscript {
     ext.jaxbImpl = '2.3.2'
 
     // Testing versions.
-    ext.jUnitVersion = '4.13.1'
+    ext.jUnitVersion = '4.13.2'
 
     repositories {
         google()

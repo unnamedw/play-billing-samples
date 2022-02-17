@@ -92,6 +92,9 @@ dependencies {
 
     implementation "com.google.android.material:material:$materialUiVersion"
 
+    // FIXME remove this
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.4.1"
+
     // MultiDex
     implementation "androidx.multidex:multidex:$multidex_version"
 
@@ -114,9 +117,9 @@ dependencies {
     implementation "com.firebaseui:firebase-ui-auth:$firebaseUiVersion"
 
     //Room
-    implementation "androidx.room:room-ktx:$androidXRoomVersion"
-    // Kotlin annotation processor for Room.
-    kapt "androidx.room:room-compiler:$androidXRoomVersion"
+    kapt "androidx.room:room-compiler:$roomVersion"
+    implementation "androidx.room:room-ktx:$roomVersion"
+    testImplementation "androidx.room:room-testing:$roomVersion"
 
     // The following rules are for compiling on environments running JDK9+.
     // In this project, these rules are necessary because data binding is enabled. It fixes the
