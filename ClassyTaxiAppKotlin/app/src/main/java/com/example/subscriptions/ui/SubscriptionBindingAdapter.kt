@@ -21,6 +21,7 @@ import android.view.View
 import android.widget.ProgressBar
 import androidx.databinding.BindingAdapter
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.Target
 import com.example.subscriptions.Constants
 import com.example.subscriptions.R
 import com.example.subscriptions.billing.*
@@ -64,6 +65,7 @@ fun updateBasicContent(view: View, basicContent: ContentResource?) {
             visibility = View.VISIBLE
             Glide.with(view.context)
                 .load(url)
+                .override(Target.SIZE_ORIGINAL)
                 .into(this)
         }
         textView.run {
@@ -96,6 +98,7 @@ fun updatePremiumContent(view: View, premiumContent: ContentResource?) {
             visibility = View.VISIBLE
             Glide.with(context)
                 .load(url)
+                .override(Target.SIZE_ORIGINAL)
                 .into(this)
         }
         textView.run {

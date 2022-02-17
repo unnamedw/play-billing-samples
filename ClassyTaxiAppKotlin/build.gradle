@@ -53,7 +53,7 @@ buildscript {
     ext.androidXRoomVersion = '2.3.0'
     ext.billingVersion = '4.0.0'
     ext.firebaseUiVersion = '8.0.0'
-    ext.glideVersion = '4.11.0'
+    ext.glideVersion = '4.13.0'
     ext.gsonVersion = '2.8.6'
     ext.jsonVersion = '20140107'
     ext.firebaseBomVersion = '28.4.1'
