@@ -19,11 +19,11 @@ package com.example.subscriptions.ui
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
 import com.example.subscriptions.SubApp
 import com.example.subscriptions.data.SubscriptionStatus
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.flow.StateFlow
 
 class SubscriptionStatusViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -35,13 +35,12 @@ class SubscriptionStatusViewModel(application: Application) : AndroidViewModel(a
     /**
      * Live data is true when there are pending network requests.
      */
-    val loading: LiveData<Boolean>
-        get() = repository.loading
+    val loading: StateFlow<Boolean> = repository.loading
 
     /**
      * Subscriptions LiveData.
      */
-    val subscriptions: LiveData<List<SubscriptionStatus>> = repository.subscriptions
+    val subscriptions: StateFlow<List<SubscriptionStatus>> = repository.subscriptions
 
     /**
      * Live Data with the basic content.

@@ -17,6 +17,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
+apply plugin: 'kotlin-parcelize'
 apply plugin: 'com.google.gms.google-services'
 
 android {
@@ -84,13 +85,12 @@ dependencies {
     // AndroidX Library.
     implementation "androidx.appcompat:appcompat:1.4.1"
     implementation "androidx.fragment:fragment-ktx:$fragmentVersion"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
     implementation "androidx.cardview:cardview:1.0.0"
     implementation "androidx.leanback:leanback-preference:1.0.0"
 
     implementation "com.google.android.material:material:$materialUiVersion"
-
-    // FIXME remove this
-    implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.4.1"
 
     // MultiDex
     implementation "androidx.multidex:multidex:$multidex_version"

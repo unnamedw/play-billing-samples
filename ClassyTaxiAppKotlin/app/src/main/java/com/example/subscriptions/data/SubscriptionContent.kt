@@ -16,46 +16,18 @@
 
 package com.example.subscriptions.data
 
-import android.os.Parcel
 import android.os.Parcelable
+import kotlinx.android.parcel.Parcelize
 
 /**
  * SubscriptionContent is an immutable object that holds the various metadata associated with a Subscription.
  */
-class SubscriptionContent : Parcelable {
-    val title: String?
-    val subtitle: String?
-    val description: String?
-
-    private constructor(
-        title: String?,
-        subtitle: String?,
-        desc: String?
-    ) {
-        this.title = title
-        this.subtitle = subtitle
-        this.description = desc
-    }
-
-    private constructor(input: Parcel) {
-        title = input.readString()
-        subtitle = input.readString()
-        description = input.readString()
-    }
-
-    override fun describeContents(): Int {
-        return 0
-    }
-
-    override fun writeToParcel(dest: Parcel, flags: Int) {
-        dest.writeString(title)
-        dest.writeString(subtitle)
-        dest.writeString(description)
-    }
-
-    override fun toString() =
-        "SubscriptionContent{title='$title', subtitle='$subtitle', description='$description'}"
-
+@Parcelize
+class SubscriptionContent(
+    val title: String?,
+    val subtitle: String?,
+    val description: String? = null
+) : Parcelable {
     // Builder for Subscription object.
     class Builder {
         private var title: String? = null
@@ -78,21 +50,7 @@ class SubscriptionContent : Parcelable {
         }
 
         fun build(): SubscriptionContent {
-            return SubscriptionContent(
-                title,
-                subtitle,
-                desc
-            )
-        }
-    }
-
-    companion object CREATOR : Parcelable.Creator<SubscriptionContent> {
-        override fun createFromParcel(parcel: Parcel): SubscriptionContent {
-            return SubscriptionContent(parcel)
-        }
-
-        override fun newArray(size: Int): Array<SubscriptionContent?> {
-            return arrayOfNulls(size)
+            return SubscriptionContent(title, subtitle, desc)
         }
     }
 }

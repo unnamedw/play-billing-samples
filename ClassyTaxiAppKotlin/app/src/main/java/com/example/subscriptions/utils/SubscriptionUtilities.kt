@@ -45,7 +45,7 @@ fun basicTextForSubscription(res: Resources, subscription: SubscriptionStatus): 
         isSubscriptionRestore(subscription) -> {
             res.getString(R.string.subscription_option_basic_message_restore)
         }
-        isBasicContent(subscription) -> {
+        subscription.isBasicContent -> {
             res.getString(R.string.subscription_option_basic_message_current)
         }
         else -> {

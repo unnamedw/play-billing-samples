@@ -31,8 +31,6 @@ import com.example.subscriptions.data.network.firebase.ServerFunctions
  */
 class SubApp : Application() {
 
-    private val executors = AppExecutors()
-
     private val database: AppDatabase
         get() = AppDatabase.getInstance(this)
 
@@ -49,7 +47,7 @@ class SubApp : Application() {
         }
 
     private val webDataSource: WebDataSource
-        get() = WebDataSource.getInstance(executors, serverFunctions)
+        get() = WebDataSource.getInstance(serverFunctions)
 
     val billingClientLifecycle: BillingClientLifecycle
         get() = BillingClientLifecycle.getInstance(this)

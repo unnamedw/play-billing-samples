@@ -16,77 +16,77 @@
 
 package com.example.subscriptions.data.network.firebase
 
-import androidx.lifecycle.LiveData
 import com.example.subscriptions.data.ContentResource
 import com.example.subscriptions.data.SubscriptionStatus
 import com.example.subscriptions.data.network.retrofit.ServerFunctionsImpl
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Interface to perform the Firebase Function calls and expose the results with [subscriptions].
  *
- * Use this class by observing the [subscriptions] LiveData.
- * Any server updates will be communicated through this LiveData.
+ * Use this class by observing the [subscriptions] StateFlow.
+ * Any server updates will be communicated through this StateFlow.
  */
 interface ServerFunctions {
 
     /**
-     * Live data is true when there are pending network requests.
+     * True when there are pending network requests.
      */
-    val loading: LiveData<Boolean>
+    val loading: StateFlow<Boolean>
 
     /**
      * The latest subscription data from the server.
      *
      * Must be observed and active in order to receive updates from the server.
      */
-    val subscriptions: LiveData<List<SubscriptionStatus>>
+    val subscriptions: StateFlow<List<SubscriptionStatus>>
 
     /**
      * The basic content URL.
      */
-    val basicContent: LiveData<ContentResource>
+    val basicContent: StateFlow<ContentResource?>
 
     /**
      * The premium content URL.
      */
-    val premiumContent: LiveData<ContentResource>
+    val premiumContent: StateFlow<ContentResource?>
 
     /**
      * Fetch basic content and post results to [basicContent].
      * This will fail if the user does not have a basic subscription.
      */
-    fun updateBasicContent()
+    suspend fun updateBasicContent()
 
     /**
      * Fetch premium content and post results to [premiumContent].
      * This will fail if the user does not have a premium subscription.
      */
-    fun updatePremiumContent()
+    suspend fun updatePremiumContent()
 
     /**
      * Fetches subscription data from the server and posts successful results to [subscriptions].
      */
-    fun updateSubscriptionStatus()
+    suspend fun updateSubscriptionStatus()
 
     /**
      * Register a subscription with the server and posts successful results to [subscriptions].
      */
-    fun registerSubscription(sku: String, purchaseToken: String)
+    suspend fun registerSubscription(sku: String, purchaseToken: String)
 
     /**
      * Transfer subscription to this account posts successful results to [subscriptions].
      */
-    fun transferSubscription(sku: String, purchaseToken: String)
+    suspend fun transferSubscription(sku: String, purchaseToken: String)
 
     /**
      * Register Instance ID when the user signs in or the token is refreshed.
      */
-    fun registerInstanceId(instanceId: String)
+    suspend fun registerInstanceId(instanceId: String)
 
     /**
      * Unregister when the user signs out.
      */
-    fun unregisterInstanceId(instanceId: String)
+    suspend fun unregisterInstanceId(instanceId: String)
 
     companion object {
 

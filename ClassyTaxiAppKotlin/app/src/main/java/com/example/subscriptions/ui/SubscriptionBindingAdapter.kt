@@ -246,7 +246,7 @@ fun LinearLayout.updatePremiumViews(subscriptions: List<SubscriptionStatus>?) {
                 hasPremium = true
                 upgradeMessage.visibility = View.GONE
             }
-            if (isBasicContent(subscription) && !isPremiumContent(subscription) && !hasPremium) {
+            if (subscription.isBasicContent && !isPremiumContent(subscription) && !hasPremium) {
                 Log.d(TAG, "basic VISIBLE")
                 // Upgrade message will be hidden if a premium subscription is found later.
                 upgradeMessage.visibility = View.VISIBLE

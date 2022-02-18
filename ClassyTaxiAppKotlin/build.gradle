@@ -50,17 +50,18 @@ ext {
 
 buildscript {
     // Library versions.
-    ext.roomVersion = '2.4.1'
     ext.billingVersion = '4.0.0'
     ext.firebaseUiVersion = '8.0.0'
     ext.glideVersion = '4.13.0'
     ext.gsonVersion = '2.8.6'
     ext.jsonVersion = '20140107'
-    ext.firebaseBomVersion = '28.4.1'
-    ext.playServicesVersion = '20.1.0'
-    ext.materialUiVersion = '1.4.0'
-    ext.retrofitSuiteVersion = '2.9.0'
     ext.fragmentVersion = '1.4.1'
+    ext.firebaseBomVersion = '28.4.1'
+    ext.lifecycleVersion = '2.4.1'
+    ext.materialUiVersion = '1.4.0'
+    ext.playServicesVersion = '20.1.0'
+    ext.retrofitSuiteVersion = '2.9.0'
+    ext.roomVersion = '2.4.1'
 
     // Tools versions.
     ext.gradleGoogleVersion = '4.3.10'

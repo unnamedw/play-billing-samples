@@ -37,7 +37,10 @@ import androidx.leanback.widget.ClassPresenterSelector
 import androidx.leanback.widget.DetailsOverviewRow
 import androidx.leanback.widget.FullWidthDetailsOverviewRowPresenter
 import androidx.leanback.widget.SparseArrayObjectAdapter
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.SimpleTarget
@@ -54,6 +57,8 @@ import com.example.subscriptions.data.SubscriptionStatus
 import com.example.subscriptions.presenter.SubscriptionDetailsPresenter
 import com.example.subscriptions.utils.basicTextForSubscription
 import com.example.subscriptions.utils.premiumTextForSubscription
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 /**
  * TvMainFragment implements DetailsSupportFragment to provide an Android TV optimized experience to the user.
@@ -61,7 +66,7 @@ import com.example.subscriptions.utils.premiumTextForSubscription
  * a SubscriptionContent object.
  *
  *
- * This Activity subscribes to LiveData updates observed by its parent Activity in order to update the content
+ * This Activity subscribes to StateFlow updates observed by its parent Activity in order to update the content
  * available.
  */
 class TvMainFragment : DetailsSupportFragment() {
@@ -124,48 +129,59 @@ class TvMainFragment : DetailsSupportFragment() {
         })
 
         // Show or hide a Spinner based on loading state
-        subscriptionsStatusViewModel.loading.observe(requireActivity(), { isLoading: Boolean ->
-            isLoading.let {
-                if (isLoading) {
-                    parentFragmentManager.beginTransaction()
-                        .replace(R.id.main_frame, spinnerFragment).commit()
-                    Log.i(TAG, "loading spinner shown")
-                } else {
-                    parentFragmentManager.beginTransaction().remove(spinnerFragment).commit()
-                    Log.i(TAG, "loading spinner hidden")
-                }
-            }
-        })
-
-        // Updates subscription image for Basic plan
-        subscriptionsStatusViewModel.basicContent.observe(requireActivity(), { it ->
-            it?.let {
-                Log.d(TAG, "basicContent onChange()")
-                if (it.url != null) {
-                    // If a premium subscription exists, don't update image with basic plan
-                    if (premiumSubscription == null) {
-                        updateSubscriptionImage(it.url)
+        lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                subscriptionsStatusViewModel.loading.collect { isLoading ->
+                    if (isLoading) {
+                        parentFragmentManager.beginTransaction()
+                            .replace(R.id.main_frame, spinnerFragment)
+                            .commit()
+                        Log.i(TAG, "loading spinner shown")
+                    } else {
+                        parentFragmentManager.beginTransaction()
+                            .remove(spinnerFragment)
+                            .commit()
+                        Log.i(TAG, "loading spinner hidden")
                     }
                 }
             }
-        })
+        }
 
-        // Updates subscription image for Premium plan
-        subscriptionsStatusViewModel.premiumContent.observe(requireActivity(), { it ->
-            it?.let {
-                Log.d(TAG, "premiumContent onChange()")
-                if (it.url != null) {
-                    updateSubscriptionImage(it.url)
+        // Updates subscription image for Basic plan
+        lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                subscriptionsStatusViewModel.basicContent.collect { content ->
+                    Log.d(TAG, "basicContent onChange()")
+                    content?.url?.let {
+                        // If a premium subscription exists, don't update image with basic plan
+                        if (premiumSubscription == null) {
+                            updateSubscriptionImage(it)
+                        }
+                    }
                 }
             }
-        })
+        }
+
+        // Updates subscription image for Premium plan
+        lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                subscriptionsStatusViewModel.premiumContent.collect { content ->
+                    content?.url?.let {
+                        updateSubscriptionImage(it)
+                    }
+                }
+            }
+        }
 
         // Updates subscription details based on list of available subscriptions
-        subscriptionsStatusViewModel.subscriptions.observe(requireActivity(), {
-            Log.d(TAG, "subscriptions onChange()")
-            updateSubscriptionDetails(it)
-        })
-
+        lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                subscriptionsStatusViewModel.subscriptions.collect {
+                    Log.d(TAG, "subscriptions onChange()")
+                    updateSubscriptionDetails(it)
+                }
+            }
+        }
     }
 
     /**
@@ -250,7 +266,7 @@ class TvMainFragment : DetailsSupportFragment() {
             for (subscription in subscriptionStatuses) {
 
                 // Basic Plan
-                if (isBasicContent(subscription)) {
+                if (subscription.isBasicContent) {
                     Log.d(TAG, "basic subscription found")
 
                     // Update our builder object

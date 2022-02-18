@@ -22,6 +22,8 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.IOException
 
+// TODO(b/219175303) remove this file
+
 /**
  * [Callback] that simplifies handling success and failure
  *
@@ -39,7 +41,7 @@ abstract class RetrofitResponseHandlerCallback<T>(
      * @param response HTTPS call's [Response] object
      */
     override fun onResponse(call: Call<T>, response: Response<T>) {
-        pendingRequestCounter.decrementRequestCount()
+//        pendingRequestCounter.decrementRequestCount()
         if (response.isSuccessful) {
             Log.i(TAG, "$methodName returned successfully")
             onSuccess(response.body()!!)
@@ -67,7 +69,7 @@ abstract class RetrofitResponseHandlerCallback<T>(
      * @param t    HTTPS call's failure [Throwable] object
      */
     override fun onFailure(call: Call<T>, t: Throwable) {
-        pendingRequestCounter.decrementRequestCount()
+//        pendingRequestCounter.decrementRequestCount()
         onError(NO_HTTP_CODE, t.message ?: "IOException on Failure response")
     }
 

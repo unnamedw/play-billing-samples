@@ -16,56 +16,44 @@
 
 package com.example.subscriptions.data.network.firebase
 
-import androidx.lifecycle.MutableLiveData
 import com.example.subscriptions.Constants
 import com.example.subscriptions.billing.isBasicContent
 import com.example.subscriptions.billing.isPremiumContent
 import com.example.subscriptions.data.ContentResource
 import com.example.subscriptions.data.SubscriptionStatus
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Fake implementation of [ServerFunctions].
  */
 class FakeServerFunctions : ServerFunctions {
 
-    /**
-     * Live data is true when there are pending network requests.
-     */
-    override val loading = MutableLiveData<Boolean>()
+    private val _subscriptions = MutableStateFlow(emptyList<SubscriptionStatus>())
+    private val _basicContent = MutableStateFlow<ContentResource?>(null)
+    private val _premiumContent = MutableStateFlow<ContentResource?>(null)
 
-    /**
-     * The latest subscription data.
-     *
-     * Use this class by observing the subscriptions [LiveData].
-     * Fake data will be communicated through this LiveData.
-     */
-    override val subscriptions = MutableLiveData<List<SubscriptionStatus>>()
-
-    /**
-     * The basic content URL.
-     */
-    override val basicContent = MutableLiveData<ContentResource>()
-
-    /**
-     * The premium content URL.
-     */
-    override val premiumContent = MutableLiveData<ContentResource>()
+    override val loading: StateFlow<Boolean> = MutableStateFlow(false)
+    override val subscriptions = _subscriptions.asStateFlow()
+    override val basicContent = _basicContent.asStateFlow()
+    override val premiumContent = _premiumContent.asStateFlow()
 
     /**
      * Fetch fake basic content and post results to [basicContent].
      * This will fail if the user does not have a basic subscription.
      */
-    override fun updateBasicContent() {
+    override suspend fun updateBasicContent() {
         val subs = subscriptions.value
-        if (subs == null || subs.isEmpty()) {
-            basicContent.postValue(null)
+        if (subs.isNullOrEmpty()) {
+            _basicContent.emit(null)
             return
         }
         // Premium subscriptions also give access to basic content.
-        if (isBasicContent(subs[0]) || isPremiumContent(subs[0])) {
-            basicContent.postValue(ContentResource("https://example.com/basic.jpg"))
+        if (subs[0].isBasicContent || isPremiumContent(subs[0])) {
+            _basicContent.emit(ContentResource("https://example.com/basic.jpg"))
         } else {
-            basicContent.postValue(null)
+            _basicContent.emit(null)
         }
     }
 
@@ -73,76 +61,66 @@ class FakeServerFunctions : ServerFunctions {
      * Fetch fake premium content and post results to [premiumContent].
      * This will fail if the user does not have a premium subscription.
      */
-    override fun updatePremiumContent() {
+    override suspend fun updatePremiumContent() {
         val subs = subscriptions.value
-        if (subs == null || subs.isEmpty()) {
-            premiumContent.postValue(null)
+        if (subs.isNullOrEmpty()) {
+            _premiumContent.emit(null)
             return
         }
         if (isPremiumContent(subs[0])) {
-            premiumContent.postValue(ContentResource("https://example.com/premium.jpg"))
+            _premiumContent.emit(ContentResource("https://example.com/premium.jpg"))
         } else {
-            premiumContent.postValue(null)
+            _premiumContent.emit(null)
         }
     }
 
     /**
      * Fetches fake subscription data and posts successful results to [subscriptions].
      */
-    override fun updateSubscriptionStatus() {
-        subscriptions.postValue(ArrayList<SubscriptionStatus>().apply {
+    override suspend fun updateSubscriptionStatus() {
+        _subscriptions.emit(ArrayList<SubscriptionStatus>().apply {
             nextFakeSubscription()?.let {
                 add(it)
             }
         })
     }
 
-    /**
-     * Register a subscription with the server and posts successful results to [subscriptions].
-     */
-    override fun registerSubscription(sku: String, purchaseToken: String) {
+    override suspend fun registerSubscription(sku: String, purchaseToken: String) {
         // When successful, return subscription results.
         // When response code is HTTP 409 CONFLICT create an already owned subscription.
-        subscriptions.postValue(when (sku) {
-            Constants.BASIC_SKU -> listOf(createFakeBasicSubscription())
-            Constants.PREMIUM_SKU -> listOf(createFakePremiumSubscription())
-            else -> listOf(createAlreadyOwnedSubscription(
-                    sku = sku, purchaseToken = purchaseToken))
-        })
+        _subscriptions.emit(
+            when (sku) {
+                Constants.BASIC_SKU -> listOf(createFakeBasicSubscription())
+                Constants.PREMIUM_SKU -> listOf(createFakePremiumSubscription())
+                else -> listOf(
+                    createAlreadyOwnedSubscription(
+                        sku = sku, purchaseToken = purchaseToken
+                    )
+                )
+            }
+        )
     }
 
-    /**
-     * Transfer subscription to this account posts successful results to [subscriptions].
-     */
-    override fun transferSubscription(sku: String, purchaseToken: String) {
+    override suspend fun transferSubscription(sku: String, purchaseToken: String) {
         val subscription = createFakeBasicSubscription().apply {
             this.sku = sku
             this.purchaseToken = purchaseToken
             subAlreadyOwned = false
             isEntitlementActive = true
         }
-        subscriptions.postValue(java.util.ArrayList<SubscriptionStatus>().apply {
-            add(subscription)
-        })
+        _subscriptions.emit(listOf(subscription))
     }
 
-    /**
-     * Register Instance ID when the user signs in or the token is refreshed.
-     */
-    override fun registerInstanceId(instanceId: String) = Unit
-
-    /**
-     * Unregister when the user signs out.
-     */
-    override fun unregisterInstanceId(instanceId: String) = Unit
+    override suspend fun registerInstanceId(instanceId: String) = Unit
+    override suspend fun unregisterInstanceId(instanceId: String) = Unit
 
     /**
      * Create a local record of a subscription that is already owned by someone else.
      * Created when the server returns HTTP 409 CONFLICT after a subscription registration request.
      */
     private fun createAlreadyOwnedSubscription(
-            sku: String,
-            purchaseToken: String
+        sku: String,
+        purchaseToken: String
     ): SubscriptionStatus {
         return SubscriptionStatus().apply {
             this.sku = sku
@@ -269,14 +247,12 @@ class FakeServerFunctions : ServerFunctions {
     }
 
     companion object {
-
         @Volatile
         private var INSTANCE: FakeServerFunctions? = null
 
         fun getInstance(): ServerFunctions =
-                INSTANCE ?: synchronized(this) {
-                    INSTANCE ?: FakeServerFunctions().also { INSTANCE = it }
-                }
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: FakeServerFunctions().also { INSTANCE = it }
+            }
     }
-
 }

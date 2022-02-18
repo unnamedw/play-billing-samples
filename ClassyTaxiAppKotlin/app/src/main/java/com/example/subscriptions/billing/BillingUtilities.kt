@@ -94,6 +94,7 @@ fun serverHasSubscription(subscriptions: List<SubscriptionStatus>?, sku: String)
 /**
  * Returns true if the grace period option should be shown.
  */
+// TODO need to be refactored like isBasicContent
 fun isGracePeriod(subscription: SubscriptionStatus?) =
         subscription != null &&
                 subscription.isEntitlementActive &&
@@ -103,6 +104,7 @@ fun isGracePeriod(subscription: SubscriptionStatus?) =
 /**
  * Returns true if the subscription restore option should be shown.
  */
+// TODO need to be refactored like isBasicContent
 fun isSubscriptionRestore(subscription: SubscriptionStatus?) =
         subscription != null &&
                 subscription.isEntitlementActive &&
@@ -112,15 +114,17 @@ fun isSubscriptionRestore(subscription: SubscriptionStatus?) =
 /**
  * Returns true if the basic content should be shown.
  */
-fun isBasicContent(subscription: SubscriptionStatus?) =
-        subscription != null &&
-                subscription.isEntitlementActive &&
-                Constants.BASIC_SKU == subscription.sku &&
-                !subscription.subAlreadyOwned
+val SubscriptionStatus?.isBasicContent: Boolean
+    get() =
+        this != null &&
+            isEntitlementActive &&
+            Constants.BASIC_SKU == sku &&
+            !subAlreadyOwned
 
 /**
  * Returns true if premium content should be shown.
  */
+// TODO need to be refactored like isBasicContent
 fun isPremiumContent(subscription: SubscriptionStatus?) =
         subscription != null &&
                 subscription.isEntitlementActive &&
@@ -130,6 +134,7 @@ fun isPremiumContent(subscription: SubscriptionStatus?) =
 /**
  * Returns true if account hold should be shown.
  */
+// TODO need to be refactored like isBasicContent
 fun isAccountHold(subscription: SubscriptionStatus?) =
         subscription != null &&
                 !subscription.isEntitlementActive &&
@@ -139,6 +144,7 @@ fun isAccountHold(subscription: SubscriptionStatus?) =
 /**
  * Returns true if account pause should be shown.
  */
+// TODO need to be refactored like isBasicContent
 fun isPaused(subscription: SubscriptionStatus?) =
         subscription != null &&
                 !subscription.isEntitlementActive &&
@@ -148,5 +154,6 @@ fun isPaused(subscription: SubscriptionStatus?) =
 /**
  * Returns true if the subscription is already owned and requires a transfer to this account.
  */
+// TODO need to be refactored like isBasicContent
 fun isTransferRequired(subscription: SubscriptionStatus?) =
         subscription != null && subscription.subAlreadyOwned

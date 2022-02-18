@@ -17,8 +17,6 @@
 package com.example.subscriptions.data
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import com.android.billingclient.api.Purchase
 import com.example.subscriptions.Constants
 import com.example.subscriptions.billing.BillingClientLifecycle
@@ -27,6 +25,10 @@ import com.example.subscriptions.data.network.WebDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 /**
@@ -42,48 +44,55 @@ class DataRepository private constructor(
 ) {
 
     /**
-     * Live data is true when there are pending network requests.
+     * True when there are pending network requests.
      */
-    // TODO(b/220085084) replace this with StateFlow
-    val loading: LiveData<Boolean>
-        get() = webDataSource.loading
+    val loading: StateFlow<Boolean> = webDataSource.loading
 
+    private val _subscriptions = MutableStateFlow<List<SubscriptionStatus>>(emptyList())
     /**
-     * [MutableLiveData] to coordinate updates from the database and the network.
+     * [MutableStateFlow] to coordinate updates from the database and the network.
      * Intended to be collected by ViewModel
      */
-    val subscriptions = MutableLiveData<List<SubscriptionStatus>>()
+    val subscriptions = _subscriptions.asStateFlow()
 
+    private val _basicContent = MutableStateFlow<ContentResource?>(null)
     /**
-     * [MutableLiveData] with the basic content.
+     * [StateFlow] with the basic content.
      * Intended to be collected by ViewModel
      */
-    val basicContent = MutableLiveData<ContentResource?>()
+    val basicContent = _basicContent.asStateFlow()
 
+    private val _premiumContent = MutableStateFlow<ContentResource?>(null)
     /**
-     * [MutableLiveData] with the premium content.
+     * [StateFlow] with the premium content.
      * Intended to be collected by ViewModel
      */
-    val premiumContent = MutableLiveData<ContentResource?>()
+    val premiumContent = _premiumContent.asStateFlow()
 
     init {
         // Update content from the web.
-        // We are using a MutableLiveData so that we can clear the data immediately
+        // We are using a MutableStateFlow so that we can clear the data immediately
         // when the subscription changes.
-        webDataSource.basicContent.observeForever {
-            basicContent.postValue(it)
+        externalScope.launch {
+            webDataSource.basicContent.collect {
+                _basicContent.emit(it)
+            }
         }
-        webDataSource.premiumContent.observeForever {
-            premiumContent.postValue(it)
+        externalScope.launch {
+            webDataSource.premiumContent.collect {
+                _premiumContent.emit(it)
+            }
         }
 
         // Observed network changes are store in the database.
         // The database changes will propagate to the ViewModel.
         // We could write different logic to ensure that the network call completes when
         // the UI component is inactive.
-        webDataSource.subscriptions.observeForever {
-            Log.i(">>>", "webDataSource.subscriptions updated - ${it.size}")
-            updateSubscriptionsFromNetwork(it)
+        externalScope.launch {
+            webDataSource.subscriptions.collect {
+                Log.i(TAG, "webDataSource.subscriptions updated - ${it.size}")
+                updateSubscriptionsFromNetwork(it)
+            }
         }
 
         // When the list of purchases changes, we need to update the subscription status
@@ -95,12 +104,12 @@ class DataRepository private constructor(
             subscriptions.value?.let {
                 val hasChanged = updateLocalPurchaseTokens(it, purchases)
                 if (hasChanged) {
-                    // FIXME temporal impl.
+                    // FIXME(b/219175303) temporal impl.
                     externalScope.launch {
                         localDataSource.updateSubscriptions(it)
                         val updatedList = localDataSource.getSubscriptions()
                         Log.i(">>>", "billingClientLifecycle.purchases - ${updatedList.size}")
-                        subscriptions.postValue(updatedList)
+                        _subscriptions.emit(updatedList)
                     }
                 }
             }
@@ -113,15 +122,15 @@ class DataRepository private constructor(
         val mergedSubscriptions =
             mergeSubscriptionsAndPurchases(oldSubscriptions, remoteSubscriptions, purchases)
         remoteSubscriptions?.let {
-            acknowledgeRegisteredPurchaseTokens(remoteSubscriptions)
+            acknowledgeRegisteredPurchaseTokens(it)
         }
 
         // Store the subscription information when it changes.
-        // FIXME temporal impl.
+        // FIXME(b/219175303) temporal impl.
         externalScope.launch {
             localDataSource.updateSubscriptions(mergedSubscriptions)
             val updatedSubs = localDataSource.getSubscriptions()
-            subscriptions.postValue(updatedSubs)
+            _subscriptions.emit(updatedSubs)
         }
 
         // Update the content when the subscription changes.
@@ -142,19 +151,22 @@ class DataRepository private constructor(
                 }
             }
 
-            if (updateBasic) {
-                // Fetch the basic content.
-                webDataSource.updateBasicContent()
-            } else {
-                // If we no longer own this content, clear it from the UI.
-                basicContent.postValue(null)
-            }
-            if (updatePremium) {
-                // Fetch the premium content.
-                webDataSource.updatePremiumContent()
-            } else {
-                // If we no longer own this content, clear it from the UI.
-                premiumContent.postValue(null)
+            // FIXME(b/219175303) temporal impl.
+            externalScope.launch {
+                if (updateBasic) {
+                    // Fetch the basic content.
+                    webDataSource.updateBasicContent()
+                } else {
+                    // If we no longer own this content, clear it from the UI.
+                    _basicContent.emit(null)
+                }
+                if (updatePremium) {
+                    // Fetch the premium content.
+                    webDataSource.updatePremiumContent()
+                } else {
+                    // If we no longer own this content, clear it from the UI.
+                    _premiumContent.emit(null)
+                }
             }
         }
     }
@@ -237,23 +249,19 @@ class DataRepository private constructor(
         purchases: List<Purchase>?
     ): Boolean {
         var hasChanged = false
-        subscriptions?.let { it ->
-            for (subscription in it) {
-                var isLocalPurchase = false
-                var purchaseToken = subscription.purchaseToken
-                purchases?.let {
-                    for (purchase in it) {
-                        if (subscription.sku == purchase.skus[0]) {
-                            isLocalPurchase = true
-                            purchaseToken = purchase.purchaseToken
-                        }
-                    }
+        subscriptions?.forEach { subscription ->
+            var isLocalPurchase = false
+            var purchaseToken = subscription.purchaseToken
+            purchases?.forEach { purchase ->
+                if (subscription.sku == purchase.skus[0]) {
+                    isLocalPurchase = true
+                    purchaseToken = purchase.purchaseToken
                 }
-                if (subscription.isLocalPurchase != isLocalPurchase) {
-                    subscription.isLocalPurchase = isLocalPurchase
-                    subscription.purchaseToken = purchaseToken
-                    hasChanged = true
-                }
+            }
+            if (subscription.isLocalPurchase != isLocalPurchase) {
+                subscription.isLocalPurchase = isLocalPurchase
+                subscription.purchaseToken = purchaseToken
+                hasChanged = true
             }
         }
         return hasChanged
@@ -263,50 +271,61 @@ class DataRepository private constructor(
      * Fetch subscriptions from the server and update local data source.
      */
     fun fetchSubscriptions() {
-        webDataSource.updateSubscriptionStatus()
+        externalScope.launch {
+            webDataSource.updateSubscriptionStatus()
+        }
     }
 
     /**
      * Register subscription to this account and update local data source.
      */
     fun registerSubscription(sku: String, purchaseToken: String) {
-        webDataSource.registerSubscription(sku = sku, purchaseToken = purchaseToken)
+        externalScope.launch {
+            webDataSource.registerSubscription(sku = sku, purchaseToken = purchaseToken)
+        }
     }
 
     /**
      * Transfer subscription to this account and update local data source.
      */
     fun transferSubscription(sku: String, purchaseToken: String) {
-        webDataSource.postTransferSubscriptionSync(sku = sku, purchaseToken = purchaseToken)
+        externalScope.launch {
+            webDataSource.postTransferSubscriptionSync(sku = sku, purchaseToken = purchaseToken)
+        }
     }
 
     /**
      * Register Instance ID.
      */
     fun registerInstanceId(instanceId: String) {
-        webDataSource.postRegisterInstanceId(instanceId)
+        externalScope.launch {
+            webDataSource.postRegisterInstanceId(instanceId)
+        }
     }
 
     /**
      * Unregister Instance ID.
      */
     fun unregisterInstanceId(instanceId: String) {
-        webDataSource.postUnregisterInstanceId(instanceId)
+        externalScope.launch {
+            webDataSource.postUnregisterInstanceId(instanceId)
+        }
     }
 
     /**
      * Delete local user data when the user signs out.
      */
     fun deleteLocalUserData() {
-        // FIXME temporal impl.
         externalScope.launch {
             localDataSource.deleteLocalUserData()
+            _basicContent.emit(null)
+            _premiumContent.emit(null)
         }
-        basicContent.postValue(null)
-        premiumContent.postValue(null)
     }
 
     companion object {
+        private const val TAG = "DataRepository"
+
         @Volatile
         private var INSTANCE: DataRepository? = null
 

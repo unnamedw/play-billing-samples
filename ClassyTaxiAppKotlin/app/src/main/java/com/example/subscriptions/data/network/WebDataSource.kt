@@ -16,30 +16,25 @@
 
 package com.example.subscriptions.data.network
 
-import androidx.lifecycle.LiveData
-import com.example.subscriptions.AppExecutors
 import com.example.subscriptions.data.SubscriptionStatus
 import com.example.subscriptions.data.network.firebase.ServerFunctions
-import java.util.concurrent.Executor
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Execute network requests on the network thread.
  * Fetch data from a [ServerFunctions] object and expose with [subscriptions].
  */
 class WebDataSource private constructor(
-    private val executor: Executor,
     private val serverFunctions: ServerFunctions
 ) {
-    // TODO(b/220085084) replace LiveData with StateFlow
-
     /**
-     * Live data is true when there are pending network requests.
+     * True when there are pending network requests.
      */
-    val loading: LiveData<Boolean>
+    val loading: StateFlow<Boolean>
         get() = serverFunctions.loading
 
     /**
-     * LiveData with the [SubscriptionStatus] information.
+     * StateFlow with the [SubscriptionStatus] information.
      */
     val subscriptions = serverFunctions.subscriptions
 
@@ -56,83 +51,57 @@ class WebDataSource private constructor(
     /**
      * GET basic content.
      */
-    fun updateBasicContent() = serverFunctions.updateBasicContent()
+    suspend fun updateBasicContent() = serverFunctions.updateBasicContent()
 
     /**
      * GET premium content.
      */
-    fun updatePremiumContent() = serverFunctions.updatePremiumContent()
+    suspend fun updatePremiumContent() = serverFunctions.updatePremiumContent()
 
     /**
      * GET request for subscription status.
      */
-    fun updateSubscriptionStatus() {
-        executor.execute {
-            synchronized(WebDataSource::class.java) {
-                serverFunctions.updateSubscriptionStatus()
-            }
-        }
+    suspend fun updateSubscriptionStatus() {
+        serverFunctions.updateSubscriptionStatus()
     }
 
     /**
      * POST request to register subscription.
      */
-    fun registerSubscription(sku: String, purchaseToken: String) {
-        executor.execute {
-            synchronized(WebDataSource::class.java) {
-                serverFunctions.registerSubscription(sku = sku, purchaseToken = purchaseToken)
-            }
-        }
+    suspend fun registerSubscription(sku: String, purchaseToken: String) {
+        serverFunctions.registerSubscription(sku = sku, purchaseToken = purchaseToken)
     }
 
     /**
      * POST request to transfer a subscription that is owned by someone else.
      */
-    fun postTransferSubscriptionSync(sku: String, purchaseToken: String) {
-        executor.execute {
-            synchronized(WebDataSource::class.java) {
-                serverFunctions.transferSubscription(sku = sku, purchaseToken = purchaseToken)
-            }
-        }
+    suspend fun postTransferSubscriptionSync(sku: String, purchaseToken: String) {
+        serverFunctions.transferSubscription(sku = sku, purchaseToken = purchaseToken)
     }
 
     /**
      * POST request to register an Instance ID.
      */
-    fun postRegisterInstanceId(instanceId: String) {
-        executor.execute {
-            synchronized(WebDataSource::class.java) {
-                serverFunctions.registerInstanceId(instanceId)
-            }
-        }
+    suspend fun postRegisterInstanceId(instanceId: String) {
+        serverFunctions.registerInstanceId(instanceId)
     }
 
     /**
      * POST request to unregister an Instance ID.
      */
-    fun postUnregisterInstanceId(instanceId: String) {
-        executor.execute {
-            synchronized(WebDataSource::class.java) {
-                serverFunctions.unregisterInstanceId(instanceId)
-            }
-        }
+    suspend fun postUnregisterInstanceId(instanceId: String) {
+        serverFunctions.unregisterInstanceId(instanceId)
     }
 
     companion object {
-
         @Volatile
         private var INSTANCE: WebDataSource? = null
 
         fun getInstance(
-            executors: AppExecutors,
             callableFunctions: ServerFunctions
         ): WebDataSource =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: WebDataSource(
-                    executors.networkIO,
-                    callableFunctions
-                ).also { INSTANCE = it }
+                INSTANCE ?: WebDataSource(callableFunctions).also { INSTANCE = it }
             }
     }
-
 }

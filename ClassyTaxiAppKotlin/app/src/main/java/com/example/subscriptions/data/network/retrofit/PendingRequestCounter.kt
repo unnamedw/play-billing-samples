@@ -17,15 +17,15 @@
 package com.example.subscriptions.data.network.retrofit
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Keep track of all pending network requests and set [LiveData] "loading"
+ * Keep track of all pending network requests and set [SteFlow] "loading"
  * to true when there remaining pending requests and false when all requests have been responded to.
  *
- * LiveData Object "loading" is used to show a progress bar in the UI.
+ * SteFlow Object "loading" is used to show a progress bar in the UI.
  *
  * TODO(cassigbe@): Improve Pending requests count according to http/b/199924571.
  *
@@ -38,16 +38,17 @@ class PendingRequestCounter {
     private val pendingRequestCount = AtomicInteger()
 
     /**
-     * Val loading is true when there are pending network requests.
+     * True when there are pending network requests.
      */
-    private val loading = MutableLiveData<Boolean>()
+    private val _loading = MutableStateFlow(false)
+    val loading = _loading.asStateFlow()
 
     /**
      * Increment request count and update loading value.
      * Must plan on calling [.decrementRequestCount] when the request completes.
      *
      */
-    fun incrementRequestCount() {
+    suspend fun incrementRequestCount() {
         val newPendingRequestCount = pendingRequestCount.incrementAndGet()
         Log.i(TAG, "Pending Server Requests: $newPendingRequestCount")
         if (newPendingRequestCount <= 0) {
@@ -55,9 +56,9 @@ class PendingRequestCounter {
                 TAG, "Unexpectedly low request count after new request: "
                         + newPendingRequestCount
             )
-            loading.postValue(false)
+            _loading.emit(false)
         } else {
-            loading.postValue(true)
+            _loading.emit(true)
         }
     }
 
@@ -67,7 +68,7 @@ class PendingRequestCounter {
      * and call [.decrementRequestCount] when the server responds to the request.
      *
      */
-    fun decrementRequestCount() {
+    suspend fun decrementRequestCount() {
         val newPendingRequestCount = pendingRequestCount.decrementAndGet()
         Log.i(TAG, "Pending Server Requests: $newPendingRequestCount")
         if (newPendingRequestCount < 0) {
@@ -75,19 +76,10 @@ class PendingRequestCounter {
                 TAG, "Unexpectedly negative request count: "
                         + newPendingRequestCount
             )
-            loading.postValue(false)
+            _loading.emit(false)
         } else if (newPendingRequestCount == 0) {
-            loading.postValue(false)
+            _loading.emit(false)
         }
-    }
-
-    /**
-     * Live data is true when there are pending network requests.
-     *
-     * @return loading a LiveData object
-     */
-    fun getLoading(): LiveData<Boolean> {
-        return loading
     }
 
     companion object {
