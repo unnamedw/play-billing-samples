@@ -23,7 +23,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.example.subscriptions.R
 import com.example.subscriptions.databinding.FragmentHomeBinding
 import com.example.subscriptions.databinding.FragmentPremiumBinding
@@ -40,9 +40,9 @@ class TabFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         val billingViewModel =
-            ViewModelProviders.of(requireActivity()).get(BillingViewModel::class.java)
+            ViewModelProvider(requireActivity()).get(BillingViewModel::class.java)
         val subscriptionViewModel =
-            ViewModelProviders.of(requireActivity()).get(SubscriptionStatusViewModel::class.java)
+            ViewModelProvider(requireActivity()).get(SubscriptionStatusViewModel::class.java)
 
         return when (arguments?.getInt(ARG_SECTION_NUMBER)) {
             MainActivity.HOME_PAGER_INDEX -> createHomeView(
@@ -73,7 +73,7 @@ class TabFragment : Fragment() {
         // Data binding with a ViewModel.
         val fragmentBinding: FragmentHomeBinding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_home, container, false)
-        fragmentBinding.lifecycleOwner = this
+        fragmentBinding.lifecycleOwner = viewLifecycleOwner
         fragmentBinding.billingViewModel = billingViewModel
         fragmentBinding.subscriptionViewModel = subscriptionViewModel
         return fragmentBinding.root
@@ -93,7 +93,7 @@ class TabFragment : Fragment() {
             DataBindingUtil.inflate(
                 inflater, R.layout.fragment_premium, container, false
             )
-        fragmentBinding.lifecycleOwner = this
+        fragmentBinding.lifecycleOwner = viewLifecycleOwner
         fragmentBinding.billingViewModel = billingViewModel
         fragmentBinding.subscriptionViewModel = subscriptionViewModel
         return fragmentBinding.root
@@ -113,7 +113,7 @@ class TabFragment : Fragment() {
             DataBindingUtil.inflate(
                 inflater, R.layout.fragment_settings, container, false
             )
-        fragmentBinding.lifecycleOwner = this
+        fragmentBinding.lifecycleOwner = viewLifecycleOwner
         fragmentBinding.billingViewModel = billingViewModel
         fragmentBinding.subscriptionViewModel = subscriptionViewModel
         return fragmentBinding.root

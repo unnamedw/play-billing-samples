@@ -25,9 +25,9 @@ import android.view.MenuItem
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentPagerAdapter
-import androidx.lifecycle.ViewModelProviders
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.ViewModelProvider
+import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.android.billingclient.api.Purchase
 import com.example.subscriptions.Constants
 import com.example.subscriptions.R
@@ -35,7 +35,7 @@ import com.example.subscriptions.SubApp
 import com.example.subscriptions.billing.BillingClientLifecycle
 import com.example.subscriptions.databinding.ActivityMainBinding
 import com.firebase.ui.auth.AuthUI
-import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import com.google.firebase.auth.FirebaseUser
 
 /**
@@ -49,18 +49,7 @@ import com.google.firebase.auth.FirebaseUser
  * When sign-in or sign-out is completed, call the [FirebaseUserViewModel] to update the state.
  */
 class MainActivity : AppCompatActivity() {
-
-    companion object {
-        private const val TAG = "MainActivity"
-
-        const val HOME_PAGER_INDEX = 0
-        const val PREMIUM_PAGER_INDEX = 1
-        const val SETTINGS_PAGER_INDEX = 2
-        private const val COUNT = 3
-    }
-
     private lateinit var billingClientLifecycle: BillingClientLifecycle
-    private lateinit var sectionsPagerAdapter: SectionsPagerAdapter
 
     private lateinit var authenticationViewModel: FirebaseUserViewModel
     private lateinit var billingViewModel: BillingViewModel
@@ -93,10 +82,18 @@ class MainActivity : AppCompatActivity() {
             tabs.addOnTabSelectedListener(TabLayout.ViewPagerOnTabSelectedListener(container))
         }
 
-        authenticationViewModel = ViewModelProviders.of(this).get(FirebaseUserViewModel::class.java)
-        billingViewModel = ViewModelProviders.of(this).get(BillingViewModel::class.java)
+        TabLayoutMediator(tabs, container) { tab, position ->
+            when (position) {
+                0 -> tab.setText(R.string.tab_text_home)
+                1 -> tab.setText(R.string.tab_text_premium)
+                2 -> tab.setText(R.string.tab_text_settings)
+            }
+        }.attach()
+
+        authenticationViewModel = ViewModelProvider(this).get(FirebaseUserViewModel::class.java)
+        billingViewModel = ViewModelProvider(this).get(BillingViewModel::class.java)
         subscriptionViewModel =
-            ViewModelProviders.of(this).get(SubscriptionStatusViewModel::class.java)
+            ViewModelProvider(this).get(SubscriptionStatusViewModel::class.java)
 
         // Billing APIs are all handled in the this lifecycle observer.
         billingClientLifecycle = (application as SubApp).billingClientLifecycle
@@ -238,19 +235,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * A [FragmentPagerAdapter] that returns a fragment corresponding to
+     * A [FragmentStateAdapter] that returns a fragment corresponding to
      * one of the sections/tabs/pages.
      */
+    private class SectionsStateAdapter(activity : FragmentActivity) :
+        FragmentStateAdapter(activity) {
+        override fun createFragment(position: Int): Fragment = TabFragment.newInstance(position)
+        override fun getItemCount(): Int = TAB_COUNT
+    }
 
-    private class SectionsPagerAdapter(fragmentManager: FragmentManager) :
-        FragmentPagerAdapter(fragmentManager) {
-        override fun getItem(position: Int): Fragment {
-            return TabFragment.newInstance(position)
-        }
+    companion object {
+        const val HOME_PAGER_INDEX = 0
+        const val PREMIUM_PAGER_INDEX = 1
+        const val SETTINGS_PAGER_INDEX = 2
 
-
-        override fun getCount(): Int {
-            return COUNT
-        }
+        private const val TAG = "MainActivity"
+        private const val TAB_COUNT = 3
     }
 }
