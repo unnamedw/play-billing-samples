@@ -103,23 +103,22 @@ class MainActivity : AppCompatActivity() {
         lifecycle.addObserver(billingClientLifecycle)
 
         // Register purchases when they change.
-        billingClientLifecycle.purchaseUpdateEvent.observe(this, {
-            it?.let {
+        billingClientLifecycle.purchaseUpdateEvent.observe(this) {
+            if (it != null) {
                 registerPurchases(it)
             }
-        })
+        }
 
         // Launch the billing flow when the user clicks a button to buy something.
-        billingViewModel.buyEvent.observe(this, {
-            it?.let {
+        billingViewModel.buyEvent.observe(this) {
+            if (it != null) {
                 billingClientLifecycle.launchBillingFlow(this, it)
             }
-        })
+        }
 
         // Open the Play Store when this event is triggered.
-        billingViewModel.openPlayStoreSubscriptionsEvent.observe(this, {
+        billingViewModel.openPlayStoreSubscriptionsEvent.observe(this) { sku ->
             Log.i(TAG, "Viewing subscriptions on the Google Play Store")
-            val sku = it
             val url = if (sku == null) {
                 // If the SKU is not specified, just open the Google Play subscriptions URL.
                 Constants.PLAY_STORE_SUBSCRIPTION_URL
@@ -130,26 +129,25 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(Intent.ACTION_VIEW)
             intent.data = Uri.parse(url)
             startActivity(intent)
-        })
+        }
 
         // Update authentication UI.
-        authenticationViewModel.firebaseUser.observe(this, {
+        authenticationViewModel.firebaseUser.observe(this) {
             invalidateOptionsMenu()
             if (it == null) {
                 triggerSignIn()
             } else {
-                Log.d(TAG, "CURRENT user: " + it.email + " " + it.displayName)
+                Log.d(TAG, "CURRENT user: ${it.email} ${it.displayName}")
             }
-        })
+        }
 
         // Update subscription information when user changes.
-        authenticationViewModel.userChangeEvent.observe(this, {
+        authenticationViewModel.userChangeEvent.observe(this) {
             subscriptionViewModel.userChanged()
             billingClientLifecycle.purchaseUpdateEvent.value?.let {
                 registerPurchases(it)
             }
-        })
-
+        }
     }
 
     /**

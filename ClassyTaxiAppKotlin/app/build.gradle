@@ -80,7 +80,7 @@ android {
 
 dependencies {
     // Google Play Billing Library.
-    implementation "com.android.billingclient:billing:$billingVersion"
+    implementation "com.android.billingclient:billing-ktx:$billingVersion"
 
     // AndroidX Library.
     implementation "androidx.appcompat:appcompat:1.4.1"
@@ -118,22 +118,15 @@ dependencies {
     implementation "androidx.room:room-ktx:$roomVersion"
     testImplementation "androidx.room:room-testing:$roomVersion"
 
-    // The following rules are for compiling on environments running JDK9+.
-    // In this project, these rules are necessary because data binding is enabled. It fixes the
-    // error 'java.lang.NoClassDefFoundError: javax/xml/bind/JAXBException' that occurs when
-    // the project is assembled through the command line with an environment running JDK9+.
-    compileOnly "com.github.pengrad:jdk9-deps:$jdk9DepsVersion"
-    if (project.hasProperty('kapt')) {
-        kapt "javax.xml.bind:jaxb-api:$jaxbApiVersion"
-        kapt "com.sun.xml.bind:jaxb-core:$jaxbCoreVersion"
-        kapt "com.sun.xml.bind:jaxb-impl:$jaxbImpl"
-    }
-    annotationProcessor "javax.xml.bind:jaxb-api:$jaxbApiVersion"
-    annotationProcessor "com.sun.xml.bind:jaxb-core:$jaxbCoreVersion"
-    annotationProcessor "com.sun.xml.bind:jaxb-impl:$jaxbImpl"
-
     // Test dependencies.
     testImplementation "junit:junit:$jUnitVersion"
+    testImplementation 'androidx.test.ext:junit:1.1.3'
+    testImplementation "com.google.truth:truth:1.1.3"
+    testImplementation "androidx.test:core-ktx:1.4.0"
+    testImplementation "org.robolectric:robolectric:4.7.3"
+    testImplementation "androidx.arch.core:core-testing:2.1.0"
+
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion"
 
     // Retrofit dependencies
     implementation "com.squareup.retrofit2:retrofit:$retrofitSuiteVersion"

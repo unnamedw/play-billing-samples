@@ -45,42 +45,38 @@ ext {
     // Android version information.
     androidMinimumSdkVersion = 17
     androidTargetSdkVersion = 31
-    androidCompileSdkVersion = 31
+    androidCompileSdkVersion = 32
 }
 
 buildscript {
-    // Library versions.
-    ext.billingVersion = '4.0.0'
-    ext.firebaseUiVersion = '8.0.0'
-    ext.glideVersion = '4.13.0'
-    ext.gsonVersion = '2.8.6'
-    ext.jsonVersion = '20140107'
-    ext.fragmentVersion = '1.4.1'
-    ext.firebaseBomVersion = '28.4.1'
-    ext.lifecycleVersion = '2.4.1'
-    ext.materialUiVersion = '1.4.0'
-    ext.playServicesVersion = '20.1.0'
-    ext.retrofitSuiteVersion = '2.9.0'
-    ext.roomVersion = '2.4.1'
+    ext {
+        // Library versions.
+        billingVersion = '4.0.0'
+        coroutinesVersion = '1.6.0'
+        firebaseUiVersion = '8.0.0'
+        glideVersion = '4.13.0'
+        gsonVersion = '2.8.6'
+        jsonVersion = '20140107'
+        fragmentVersion = '1.4.1'
+        firebaseBomVersion = '28.4.1'
+        lifecycleVersion = '2.4.1'
+        materialUiVersion = '1.4.0'
+        playServicesVersion = '20.1.0'
+        retrofitSuiteVersion = '2.9.0'
+        roomVersion = '2.4.1'
 
-    // Tools versions.
-    ext.gradleGoogleVersion = '4.3.10'
-    ext.gradleToolsVersion = '7.0.2'
-    ext.kotlinVersion = '1.6.10'
-    ext.multidex_version = "2.0.1"
+        // Tools versions.
+        gradleGoogleVersion = '4.3.10'
+        gradleToolsVersion = '7.1.2'
+        kotlinVersion = '1.6.10'
+        multidex_version = "2.0.1"
 
-    // jaxb versions for compiling for JDK9+
-    ext.jdk9DepsVersion = '1.0'
-    ext.jaxbApiVersion = '2.3.1'
-    ext.jaxbCoreVersion = '2.3.0.1'
-    ext.jaxbImpl = '2.3.2'
-
-    // Testing versions.
-    ext.jUnitVersion = '4.13.2'
+        // Testing versions.
+        jUnitVersion = '4.13.2'
+    }
 
     repositories {
         google()
-        jcenter()
         mavenCentral()
     }
     dependencies {
@@ -96,7 +92,6 @@ buildscript {
 allprojects {
     repositories {
         google()
-        jcenter()
         mavenCentral()
     }
 }
