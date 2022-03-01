@@ -105,13 +105,11 @@ class SubscriptionStatusViewModel(application: Application) : AndroidViewModel(a
      */
     fun transferSubscriptions() {
         Log.d(TAG, "transferSubscriptions")
-        subscriptions.value?.let {
-            for (subscription in it) {
-                val sku = subscription.sku
-                val purchaseToken = subscription.purchaseToken
-                if (sku != null && purchaseToken != null) {
-                    repository.transferSubscription(sku = sku, purchaseToken = purchaseToken)
-                }
+        subscriptions.value.forEach { subscription ->
+            val sku = subscription.sku
+            val purchaseToken = subscription.purchaseToken
+            if (sku != null && purchaseToken != null) {
+                repository.transferSubscription(sku = sku, purchaseToken = purchaseToken)
             }
         }
     }

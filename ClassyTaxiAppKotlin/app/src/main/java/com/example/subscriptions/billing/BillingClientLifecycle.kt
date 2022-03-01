@@ -266,6 +266,7 @@ class BillingClientLifecycle private constructor(
     /**
      * Check whether the purchases have changed before posting changes.
      */
+    @Suppress("UNUSED_PARAMETER")
     private fun isUnchangedPurchaseList(purchasesList: List<Purchase>?): Boolean {
         // TODO: Optimize to avoid updates with identical data.
         return false

@@ -101,7 +101,7 @@ class DataRepository private constructor(
         // local if there is no record of the subscription on the device.
         billingClientLifecycle.purchases.observeForever { purchases ->
             // We only need to update the database if the isLocalPurchase field needs to change.
-            subscriptions.value?.let {
+            subscriptions.value.let {
                 val hasChanged = updateLocalPurchaseTokens(it, purchases)
                 if (hasChanged) {
                     // FIXME(b/219175303) temporal impl.

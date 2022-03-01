@@ -17,7 +17,7 @@
 package com.example.subscriptions.data
 
 import android.os.Parcelable
-import kotlinx.android.parcel.Parcelize
+import kotlinx.parcelize.Parcelize
 
 /**
  * SubscriptionContent is an immutable object that holds the various metadata associated with a Subscription.

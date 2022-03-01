@@ -35,6 +35,7 @@ import com.example.subscriptions.SubApp
 import com.example.subscriptions.billing.BillingClientLifecycle
 import com.example.subscriptions.databinding.ActivityMainBinding
 import com.firebase.ui.auth.AuthUI
+import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.google.firebase.auth.FirebaseUser
 
@@ -75,20 +76,15 @@ class MainActivity : AppCompatActivity() {
 
             // Create the adapter that will return a fragment for each of the three
             // primary sections of the activity.
-            sectionsPagerAdapter = SectionsPagerAdapter(supportFragmentManager)
-            // Set up the ViewPager with the sections adapter.
-            container.adapter = sectionsPagerAdapter
-            container.addOnPageChangeListener(TabLayout.TabLayoutOnPageChangeListener(tabs))
-            tabs.addOnTabSelectedListener(TabLayout.ViewPagerOnTabSelectedListener(container))
+            container.adapter = SectionsStateAdapter(this@MainActivity)
+            TabLayoutMediator(tabs, container) { tab, position ->
+                when (position) {
+                    0 -> tab.setText(R.string.tab_text_home)
+                    1 -> tab.setText(R.string.tab_text_premium)
+                    2 -> tab.setText(R.string.tab_text_settings)
+                }
+            }.attach()
         }
-
-        TabLayoutMediator(tabs, container) { tab, position ->
-            when (position) {
-                0 -> tab.setText(R.string.tab_text_home)
-                1 -> tab.setText(R.string.tab_text_premium)
-                2 -> tab.setText(R.string.tab_text_settings)
-            }
-        }.attach()
 
         authenticationViewModel = ViewModelProvider(this).get(FirebaseUserViewModel::class.java)
         billingViewModel = ViewModelProvider(this).get(BillingViewModel::class.java)
