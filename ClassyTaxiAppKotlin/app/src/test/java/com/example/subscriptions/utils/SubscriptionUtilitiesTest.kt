@@ -169,7 +169,7 @@ class SubscriptionUtilitiesTest {
     }
 
     @Test
-    fun premiumTextForSubscription_returnsPremiumTextForPausedSub() {
+    fun premiumTextForSubscription_returnsBasicTextForPausedSub() {
 
         val pausedSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
@@ -183,7 +183,7 @@ class SubscriptionUtilitiesTest {
     }
 
     @Test
-    fun premiumTextForSubscription_returnsPremiumTextForGracePeriodSub() {
+    fun premiumTextForSubscription_returnsBasicTextForGracePeriodSub() {
 
         val onGraceSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
@@ -197,7 +197,7 @@ class SubscriptionUtilitiesTest {
     }
 
     @Test
-    fun premiumTextForSubscription_returnsPremiumTextForSubRestore() {
+    fun premiumTextForSubscription_returnsBasicTextForSubRestore() {
 
         val willNotRenewSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
