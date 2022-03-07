@@ -20,25 +20,26 @@ import android.util.Log
 import com.android.billingclient.api.Purchase
 import com.example.subscriptions.Constants
 import com.example.subscriptions.billing.BillingClientLifecycle
-import com.example.subscriptions.data.disk.LocalDataSource
-import com.example.subscriptions.data.network.WebDataSource
+import com.example.subscriptions.data.disk.SubLocalDataSource
+import com.example.subscriptions.data.network.SubRemoteDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
  * Repository handling the work with subscriptions.
  */
-class DataRepository private constructor(
-    private val localDataSource: LocalDataSource,
-    private val webDataSource: WebDataSource,
+class SubRepository private constructor(
+    private val localDataSource: SubLocalDataSource,
+    private val remoteDataSource: SubRemoteDataSource,
     private val billingClientLifecycle: BillingClientLifecycle,
-    // TODO this should be injected externally
     private val externalScope: CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
 ) {
@@ -46,7 +47,7 @@ class DataRepository private constructor(
     /**
      * True when there are pending network requests.
      */
-    val loading: StateFlow<Boolean> = webDataSource.loading
+    val loading: StateFlow<Boolean> = remoteDataSource.loading
 
     private val _subscriptions = MutableStateFlow<List<SubscriptionStatus>>(emptyList())
     /**
@@ -70,16 +71,16 @@ class DataRepository private constructor(
     val premiumContent = _premiumContent.asStateFlow()
 
     init {
-        // Update content from the web.
+        // Update content from the remote server.
         // We are using a MutableStateFlow so that we can clear the data immediately
         // when the subscription changes.
         externalScope.launch {
-            webDataSource.basicContent.collect {
+            remoteDataSource.basicContent.collect {
                 _basicContent.emit(it)
             }
         }
         externalScope.launch {
-            webDataSource.premiumContent.collect {
+            remoteDataSource.premiumContent.collect {
                 _premiumContent.emit(it)
             }
         }
@@ -154,15 +155,13 @@ class DataRepository private constructor(
             // FIXME(b/219175303) temporal impl.
             externalScope.launch {
                 if (updateBasic) {
-                    // Fetch the basic content.
-                    webDataSource.updateBasicContent()
+                    remoteDataSource.updateBasicContent()
                 } else {
                     // If we no longer own this content, clear it from the UI.
                     _basicContent.emit(null)
                 }
                 if (updatePremium) {
-                    // Fetch the premium content.
-                    webDataSource.updatePremiumContent()
+                    remoteDataSource.updatePremiumContent()
                 } else {
                     // If we no longer own this content, clear it from the UI.
                     _premiumContent.emit(null)
@@ -272,7 +271,7 @@ class DataRepository private constructor(
      */
     fun fetchSubscriptions() {
         externalScope.launch {
-            webDataSource.updateSubscriptionStatus()
+            remoteDataSource.updateSubscriptionStatus()
         }
     }
 
@@ -281,7 +280,7 @@ class DataRepository private constructor(
      */
     fun registerSubscription(sku: String, purchaseToken: String) {
         externalScope.launch {
-            webDataSource.registerSubscription(sku = sku, purchaseToken = purchaseToken)
+            val subs = remoteDataSource.registerSubscription(sku = sku, purchaseToken = purchaseToken)
         }
     }
 
@@ -290,7 +289,7 @@ class DataRepository private constructor(
      */
     fun transferSubscription(sku: String, purchaseToken: String) {
         externalScope.launch {
-            webDataSource.postTransferSubscriptionSync(sku = sku, purchaseToken = purchaseToken)
+            remoteDataSource.postTransferSubscriptionSync(sku = sku, purchaseToken = purchaseToken)
         }
     }
 
@@ -299,7 +298,7 @@ class DataRepository private constructor(
      */
     fun registerInstanceId(instanceId: String) {
         externalScope.launch {
-            webDataSource.postRegisterInstanceId(instanceId)
+            remoteDataSource.postRegisterInstanceId(instanceId)
         }
     }
 
@@ -308,7 +307,7 @@ class DataRepository private constructor(
      */
     fun unregisterInstanceId(instanceId: String) {
         externalScope.launch {
-            webDataSource.postUnregisterInstanceId(instanceId)
+            remoteDataSource.postUnregisterInstanceId(instanceId)
         }
     }
 
@@ -324,18 +323,18 @@ class DataRepository private constructor(
     }
 
     companion object {
-        private const val TAG = "DataRepository"
+        private const val TAG = "SubRepository"
 
         @Volatile
-        private var INSTANCE: DataRepository? = null
+        private var INSTANCE: SubRepository? = null
 
         fun getInstance(
-            localDataSource: LocalDataSource,
-            webDataSource: WebDataSource,
+            localDataSource: SubLocalDataSource,
+            subRemoteDataSource: SubRemoteDataSource,
             billingClientLifecycle: BillingClientLifecycle
-        ): DataRepository =
+        ): SubRepository =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: DataRepository(localDataSource, webDataSource, billingClientLifecycle)
+                INSTANCE ?: SubRepository(localDataSource, subRemoteDataSource, billingClientLifecycle)
                     .also { INSTANCE = it }
             }
     }

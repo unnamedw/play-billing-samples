@@ -18,8 +18,9 @@ package com.example.subscriptions.data.disk
 
 import com.example.subscriptions.data.SubscriptionStatus
 import com.example.subscriptions.data.disk.db.SubscriptionStatusDao
+import kotlinx.coroutines.flow.Flow
 
-class LocalDataSource private constructor(
+class SubLocalDataSource private constructor(
     private val subscriptionStatusDao: SubscriptionStatusDao
 ) {
     /**
@@ -42,11 +43,11 @@ class LocalDataSource private constructor(
     companion object {
 
         @Volatile
-        private var INSTANCE: LocalDataSource? = null
+        private var INSTANCE: SubLocalDataSource? = null
 
-        fun getInstance(subscriptionStatusDao: SubscriptionStatusDao): LocalDataSource =
+        fun getInstance(subscriptionStatusDao: SubscriptionStatusDao): SubLocalDataSource =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: LocalDataSource(subscriptionStatusDao).also { INSTANCE = it }
+                INSTANCE ?: SubLocalDataSource(subscriptionStatusDao).also { INSTANCE = it }
             }
     }
 

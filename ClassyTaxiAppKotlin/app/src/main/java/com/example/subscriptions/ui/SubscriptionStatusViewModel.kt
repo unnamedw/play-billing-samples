@@ -20,20 +20,21 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import com.example.subscriptions.SubApp
+import com.example.subscriptions.data.SubRepository
 import com.example.subscriptions.data.SubscriptionStatus
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.StateFlow
 
-class SubscriptionStatusViewModel(application: Application) : AndroidViewModel(application) {
+class SubscriptionStatusViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
+
+    // TODO this should be moved to constructor param and injected by Hilt
+    private val repository: SubRepository = (application as SubApp).repository
 
     /**
-     * Data repository.
-     */
-    private val repository = (application as SubApp).repository
-
-    /**
-     * Live data is true when there are pending network requests.
+     * True when there are pending network requests.
      */
     val loading: StateFlow<Boolean> = repository.loading
 
@@ -43,12 +44,12 @@ class SubscriptionStatusViewModel(application: Application) : AndroidViewModel(a
     val subscriptions: StateFlow<List<SubscriptionStatus>> = repository.subscriptions
 
     /**
-     * Live Data with the basic content.
+     * StateFlow with the basic content.
      */
     val basicContent = repository.basicContent
 
     /**
-     * Live Data with the premium content.
+     * StateFlow with the premium content.
      */
     val premiumContent = repository.premiumContent
 
@@ -117,5 +118,4 @@ class SubscriptionStatusViewModel(application: Application) : AndroidViewModel(a
     companion object {
         private const val TAG = "SubViewModel"
     }
-
 }

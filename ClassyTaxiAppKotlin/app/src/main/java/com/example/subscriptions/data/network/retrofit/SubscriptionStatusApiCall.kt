@@ -33,7 +33,7 @@ interface SubscriptionStatusApiCall {
     @PUT("instanceId_unregister_v2")
     suspend fun unregisterInstanceID(@Body instanceId: Map<String, String>): String
 
-    // Registers subscription status to the server.
+    // Registers subscription status to the server and get updated list of subscriptions
     @PUT("subscription_register_v2")
     suspend fun registerSubscription(@Body registerStatus: SubscriptionStatus):
         Response<SubscriptionStatusList>

@@ -66,12 +66,12 @@ interface ServerFunctions {
     /**
      * Fetches subscription data from the server and posts successful results to [subscriptions].
      */
-    suspend fun updateSubscriptionStatus()
+    suspend fun fetchSubscriptionStatus()
 
     /**
      * Register a subscription with the server and posts successful results to [subscriptions].
      */
-    suspend fun registerSubscription(sku: String, purchaseToken: String)
+    suspend fun registerSubscription(sku: String, purchaseToken: String): List<SubscriptionStatus>
 
     /**
      * Transfer subscription to this account posts successful results to [subscriptions].

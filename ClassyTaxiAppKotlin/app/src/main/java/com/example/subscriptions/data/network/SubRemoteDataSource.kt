@@ -22,9 +22,9 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Execute network requests on the network thread.
- * Fetch data from a [ServerFunctions] object and expose with [subscriptions].
+ * Fetch data from a remote server object.
  */
-class WebDataSource private constructor(
+class SubRemoteDataSource private constructor(
     private val serverFunctions: ServerFunctions
 ) {
     /**
@@ -62,14 +62,14 @@ class WebDataSource private constructor(
      * GET request for subscription status.
      */
     suspend fun updateSubscriptionStatus() {
-        serverFunctions.updateSubscriptionStatus()
+        serverFunctions.fetchSubscriptionStatus()
     }
 
     /**
      * POST request to register subscription.
      */
-    suspend fun registerSubscription(sku: String, purchaseToken: String) {
-        serverFunctions.registerSubscription(sku = sku, purchaseToken = purchaseToken)
+    suspend fun registerSubscription(sku: String, purchaseToken: String): List<SubscriptionStatus> {
+        return serverFunctions.registerSubscription(sku = sku, purchaseToken = purchaseToken)
     }
 
     /**
@@ -95,13 +95,13 @@ class WebDataSource private constructor(
 
     companion object {
         @Volatile
-        private var INSTANCE: WebDataSource? = null
+        private var INSTANCE: SubRemoteDataSource? = null
 
         fun getInstance(
             callableFunctions: ServerFunctions
-        ): WebDataSource =
+        ): SubRemoteDataSource =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: WebDataSource(callableFunctions).also { INSTANCE = it }
+                INSTANCE ?: SubRemoteDataSource(callableFunctions).also { INSTANCE = it }
             }
     }
 }

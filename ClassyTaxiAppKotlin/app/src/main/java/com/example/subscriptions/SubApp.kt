@@ -19,10 +19,10 @@ package com.example.subscriptions
 import android.app.Application
 import com.example.subscriptions.Constants.Companion.USE_FAKE_SERVER
 import com.example.subscriptions.billing.BillingClientLifecycle
-import com.example.subscriptions.data.DataRepository
-import com.example.subscriptions.data.disk.LocalDataSource
+import com.example.subscriptions.data.SubRepository
+import com.example.subscriptions.data.disk.SubLocalDataSource
 import com.example.subscriptions.data.disk.db.AppDatabase
-import com.example.subscriptions.data.network.WebDataSource
+import com.example.subscriptions.data.network.SubRemoteDataSource
 import com.example.subscriptions.data.network.firebase.FakeServerFunctions
 import com.example.subscriptions.data.network.firebase.ServerFunctions
 
@@ -34,8 +34,8 @@ class SubApp : Application() {
     private val database: AppDatabase
         get() = AppDatabase.getInstance(this)
 
-    private val localDataSource: LocalDataSource
-        get() = LocalDataSource.getInstance(database.subscriptionStatusDao())
+    private val subLocalDataSource: SubLocalDataSource
+        get() = SubLocalDataSource.getInstance(database.subscriptionStatusDao())
 
     private val serverFunctions: ServerFunctions
         get() {
@@ -46,13 +46,13 @@ class SubApp : Application() {
             }
         }
 
-    private val webDataSource: WebDataSource
-        get() = WebDataSource.getInstance(serverFunctions)
+    private val subRemoteDataSource: SubRemoteDataSource
+        get() = SubRemoteDataSource.getInstance(serverFunctions)
 
     val billingClientLifecycle: BillingClientLifecycle
         get() = BillingClientLifecycle.getInstance(this)
 
-    val repository: DataRepository
-        get() = DataRepository.getInstance(localDataSource, webDataSource, billingClientLifecycle)
+    val repository: SubRepository
+        get() = SubRepository.getInstance(subLocalDataSource, subRemoteDataSource, billingClientLifecycle)
 
 }
