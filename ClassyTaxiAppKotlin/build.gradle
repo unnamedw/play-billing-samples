@@ -63,7 +63,7 @@ buildscript {
         materialUiVersion = '1.4.0'
         playServicesVersion = '20.1.0'
         retrofitSuiteVersion = '2.9.0'
-        roomVersion = '2.4.1'
+        roomVersion = '2.4.2'
 
         // Tools versions.
         gradleGoogleVersion = '4.3.10'

@@ -126,6 +126,7 @@ export class SubscriptionPurchaseImpl implements SubscriptionPurchase {
   orderId: string;
   linkedPurchaseToken: string;
   purchaseType?: number;
+  acknowledgementState: number;
 
   // Library-managed Purchase properties
   packageName: string;
@@ -178,6 +179,10 @@ export class SubscriptionPurchaseImpl implements SubscriptionPurchase {
   isRegisterable(): boolean {
     const now = Date.now();
     return (now <= this.expiryTimeMillis);
+  }
+
+  isAcknowledged(): boolean {
+    return (this.acknowledgementState === 1);
   }
 
   // These methods below are convenient utilities that developers can use to interpret Play Developer API response

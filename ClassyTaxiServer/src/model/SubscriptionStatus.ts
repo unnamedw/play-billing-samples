@@ -30,6 +30,7 @@ export class SubscriptionStatus {
   isGracePeriod: boolean;
   isAccountHold: boolean;
   isPaused: boolean;
+  isAcknowledged: boolean;
   autoResumeTimeMillis: number;
 
   constructor(subcriptionPurchase: PlayBilling.SubscriptionPurchase) {
@@ -42,6 +43,7 @@ export class SubscriptionStatus {
     this.isGracePeriod = subcriptionPurchase.isGracePeriod();
     this.isAccountHold = subcriptionPurchase.isAccountHold();
     this.isPaused = subcriptionPurchase.isPaused();
+    this.isAcknowledged = subcriptionPurchase.isAcknowledged();
     this.autoResumeTimeMillis = subcriptionPurchase.autoResumeTimeMillis;
   }
 }

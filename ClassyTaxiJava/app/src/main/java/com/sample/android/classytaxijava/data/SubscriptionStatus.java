@@ -46,6 +46,7 @@ public class SubscriptionStatus {
     private boolean isGracePeriod;
     private boolean isAccountHold;
     private boolean isPaused;
+    private boolean isAcknowledged;
     private Long autoResumeTimeMillis;
 
     public boolean isWillRenew() {

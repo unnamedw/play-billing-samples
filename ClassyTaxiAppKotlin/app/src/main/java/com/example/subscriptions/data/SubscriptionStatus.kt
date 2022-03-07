@@ -41,6 +41,7 @@ data class SubscriptionStatus(
     var isGracePeriod: Boolean = false,
     var isAccountHold: Boolean = false,
     var isPaused: Boolean = false,
+    var isAcknowledged: Boolean = false,
     var autoResumeTimeMillis: Long = 0
 ) {
 

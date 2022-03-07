@@ -66,6 +66,7 @@ export interface SubscriptionPurchase extends Purchase {
   orderId: string;
   linkedPurchaseToken: string;
   purchaseType?: number;
+  acknowledgementState: number;
 
   // Library-managed Purchase properties
   replacedByAnotherPurchase: boolean;
@@ -82,6 +83,7 @@ export interface SubscriptionPurchase extends Purchase {
   isGracePeriod(): boolean;
   isAccountHold(): boolean;
   isPaused(): boolean;
+  isAcknowledged(): boolean;
   activeUntilDate(): Date;
 }
 

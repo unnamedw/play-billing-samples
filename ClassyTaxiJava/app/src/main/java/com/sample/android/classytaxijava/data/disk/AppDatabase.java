@@ -24,7 +24,7 @@ import androidx.room.RoomDatabase;
 
 import com.sample.android.classytaxijava.data.SubscriptionStatus;
 
-@Database(entities = SubscriptionStatus.class, version = 1)
+@Database(entities = SubscriptionStatus.class, version = 2)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static volatile AppDatabase INSTANCE = null;
