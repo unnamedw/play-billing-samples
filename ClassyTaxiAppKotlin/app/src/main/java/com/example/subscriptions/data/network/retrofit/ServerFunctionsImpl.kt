@@ -26,7 +26,12 @@ import com.example.subscriptions.data.network.retrofit.authentication.RetrofitCl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import retrofit2.Response
 import java.net.HttpURLConnection
+
+fun <T> Response<T>.errorLog(): String {
+    return "Failed to call API (Error code: ${code()}) - ${errorBody()?.string()}"
+}
 
 /**
  * Implementation of [ServerFunctions] using Retrofit.
@@ -45,109 +50,91 @@ class ServerFunctionsImpl : ServerFunctions {
     private val _premiumContent = MutableStateFlow<ContentResource?>(null)
 
     override val loading: StateFlow<Boolean> = pendingRequestCounter.loading
-    override val subscriptions = _subscriptions.asStateFlow()
     override val basicContent = _basicContent.asStateFlow()
     override val premiumContent = _premiumContent.asStateFlow()
 
     override suspend fun updateBasicContent() {
-        pendingRequestCounter.incrementRequestCount()
-        val response = retrofitClient.getService().fetchBasicContent()
-        _basicContent.emit(response)
-        pendingRequestCounter.decrementRequestCount()
+        pendingRequestCounter.use {
+            val response = retrofitClient.getService().fetchBasicContent()
+            _basicContent.emit(response)
+        }
     }
 
     override suspend fun updatePremiumContent() {
-        pendingRequestCounter.incrementRequestCount()
-        val response = retrofitClient.getService().fetchPremiumContent()
-        _premiumContent.emit(response)
-        pendingRequestCounter.decrementRequestCount()
+        pendingRequestCounter.use {
+            val response = retrofitClient.getService().fetchPremiumContent()
+            _premiumContent.emit(response)
+        }
     }
 
-    override suspend fun updateSubscriptionStatus() {
-        pendingRequestCounter.incrementRequestCount()
-        val response = retrofitClient.getService().fetchSubscriptionStatus()
-        onSuccessfulSubscriptionCall(response, _subscriptions)
-        pendingRequestCounter.decrementRequestCount()
+    override suspend fun fetchSubscriptionStatus(): List<SubscriptionStatus> {
+        pendingRequestCounter.use {
+            val response = retrofitClient.getService().fetchSubscriptionStatus()
+            if (!response.isSuccessful) {
+                Log.e(TAG, response.errorLog())
+                throw Exception("Failed to fetch subscriptions from the server")
+            }
+            return response.body()?.subscriptions.orEmpty()
+        }
     }
 
-    /**
-     * Register a subscription with the server and posts successful results to [subscriptions].
-     */
-    override suspend fun registerSubscription(sku: String, purchaseToken: String) {
+    override suspend fun registerSubscription(sku: String, purchaseToken: String): List<SubscriptionStatus> {
         val data = SubscriptionStatus(
             sku = sku,
             purchaseToken = purchaseToken
         )
-        pendingRequestCounter.incrementRequestCount()
-
-        try {
+        pendingRequestCounter.use {
             val response = retrofitClient.getService().registerSubscription(data)
             if (response.isSuccessful && response.body() != null) {
-                response.body()?.let {
-                    onSuccessfulSubscriptionCall(it, _subscriptions)
-                } // ?: // TODO(b/219175303) handle error
+                return response.body()?.subscriptions.orEmpty()
             } else {
                 if (response.code() == HttpURLConnection.HTTP_CONFLICT) {
                     Log.w(TAG, "Subscription already exists")
-                    val oldSubscriptions = subscriptions.value
-                    val newSubscription = newSub(sku, purchaseToken)
+                    val oldSubscriptions = _subscriptions.value
+                    val newSubscription = SubscriptionStatus.alreadyOwnedSubscription(
+                        sku, purchaseToken
+                    )
                     val newSubscriptions = insertOrUpdateSubscription(
                         oldSubscriptions, newSubscription
                     )
                     _subscriptions.emit(newSubscriptions)
+                    return newSubscriptions
                 } else {
-                    // TODO(b/219175303) handle error
-                    Log.e(">>>", "registerSubscription() - ${response.code()}")
+                    Log.e(TAG, response.errorLog())
+                    throw Exception("Failed to register subscription")
                 }
             }
-
-        } catch (e: Exception) {
-            Log.w(">>>", "registerSubscription() - ${e.localizedMessage}")
         }
-
-        pendingRequestCounter.decrementRequestCount()
     }
 
-    /**
-     * Transfer subscription to this account posts successful results to [subscriptions].
-     */
-    override suspend fun transferSubscription(sku: String, purchaseToken: String) {
-        val data = SubscriptionStatus()
-        data.sku = sku
-        data.purchaseToken = purchaseToken
-        pendingRequestCounter.incrementRequestCount()
-        val response = retrofitClient.getService().transferSubscription(data)
-        onSuccessfulSubscriptionCall(response, _subscriptions)
-        pendingRequestCounter.decrementRequestCount()
+    override suspend fun transferSubscription(sku: String, purchaseToken: String):
+        List<SubscriptionStatus> {
+        val data = SubscriptionStatus().also {
+            it.sku = sku
+            it.purchaseToken = purchaseToken
+        }
+        pendingRequestCounter.use {
+            val response = retrofitClient.getService().transferSubscription(data)
+            return response.subscriptions.orEmpty()
+        }
     }
 
-    /**
-     * Register Instance ID when the user signs in or the token is refreshed.
-     */
     override suspend fun registerInstanceId(instanceId: String) {
         val data = mapOf("instanceId" to instanceId)
-        pendingRequestCounter.incrementRequestCount()
-        retrofitClient.getService().registerInstanceID(data)
-        // TODO(b/219175303) handle error
-        pendingRequestCounter.decrementRequestCount()
+        pendingRequestCounter.use {
+            retrofitClient.getService().registerInstanceID(data)
+        }
     }
 
-    /**
-     * Unregister when the user signs out.
-     */
     override suspend fun unregisterInstanceId(instanceId: String) {
         val data = mapOf("instanceId" to instanceId)
-        pendingRequestCounter.incrementRequestCount()
-        retrofitClient.getService().unregisterInstanceID(data)
-        // TODO(b/219175303) handle error
-        pendingRequestCounter.decrementRequestCount()
+        pendingRequestCounter.use {
+            retrofitClient.getService().unregisterInstanceID(data)
+        }
     }
-
-    // Helper functions...
 
     /**
      * Inserts or updates the subscription to the list of existing com.example.subscriptions.
-     *
      *
      * If none of the existing com.example.subscriptions have a SKU that matches, insert this SKU.
      * If a subscription exists with the matching SKU, the output list will contain the new
@@ -161,30 +148,8 @@ class ServerFunctionsImpl : ServerFunctions {
         return oldSubscriptions.filter { it.sku != newSubscription.sku } + newSubscription
     }
 
-    /**
-     * Called when a successful response returns from the server
-     * for a [SubscriptionStatus] HTTPS call
-     *
-     * @param responseBody  Successful subscription statuses response object
-     * @param subscriptions StateFlow subscription list
-     */
-    private suspend fun onSuccessfulSubscriptionCall(
-        responseBody: SubscriptionStatusList,
-        subscriptions: MutableStateFlow<List<SubscriptionStatus>>
-    ) {
-        val subs = responseBody.subscriptions.orEmpty()
-        if (subs.isEmpty()) {
-            Log.i(TAG, "No subscription data")
-            return
-        }
-        Log.i(TAG, "Valid subscription data")
-        subscriptions.emit(subs)
-    }
-
     companion object {
         private const val TAG = "RemoteServerFunction"
-
-        fun newSub(sku: String, purchaseToken: String): SubscriptionStatus =
-            SubscriptionStatus.alreadyOwnedSubscription(sku, purchaseToken)
     }
 }
+

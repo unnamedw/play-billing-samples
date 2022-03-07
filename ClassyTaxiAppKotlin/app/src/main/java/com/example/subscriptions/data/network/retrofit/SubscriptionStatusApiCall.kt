@@ -23,7 +23,7 @@ interface SubscriptionStatusApiCall {
 
     // Fetch Subscription Status.
     @GET("subscription_status_v2")
-    suspend fun fetchSubscriptionStatus(): SubscriptionStatusList
+    suspend fun fetchSubscriptionStatus(): Response<SubscriptionStatusList>
 
     // Registers Instance ID for Firebase Cloud Messaging.
     @PUT("instanceId_register_v2")

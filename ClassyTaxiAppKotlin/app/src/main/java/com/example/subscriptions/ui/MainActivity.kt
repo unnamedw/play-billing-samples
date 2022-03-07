@@ -95,13 +95,6 @@ class MainActivity : AppCompatActivity() {
         billingClientLifecycle = (application as SubApp).billingClientLifecycle
         lifecycle.addObserver(billingClientLifecycle)
 
-        // Register purchases when they change.
-        billingClientLifecycle.purchaseUpdateEvent.observe(this) {
-            if (it != null) {
-                registerPurchases(it)
-            }
-        }
-
         // Launch the billing flow when the user clicks a button to buy something.
         billingViewModel.buyEvent.observe(this) {
             if (it != null) {
@@ -137,9 +130,7 @@ class MainActivity : AppCompatActivity() {
         // Update subscription information when user changes.
         authenticationViewModel.userChangeEvent.observe(this) {
             subscriptionViewModel.userChanged()
-            billingClientLifecycle.purchaseUpdateEvent.value?.let {
-                registerPurchases(it)
-            }
+            registerPurchases(billingClientLifecycle.purchases.value)
         }
     }
 

@@ -29,28 +29,25 @@ import kotlinx.coroutines.flow.asStateFlow
  * Fake implementation of [ServerFunctions].
  */
 class FakeServerFunctions : ServerFunctions {
-
-    private val _subscriptions = MutableStateFlow(emptyList<SubscriptionStatus>())
+    private var subscriptions: List<SubscriptionStatus> = emptyList()
     private val _basicContent = MutableStateFlow<ContentResource?>(null)
     private val _premiumContent = MutableStateFlow<ContentResource?>(null)
 
-    override val loading: StateFlow<Boolean> = MutableStateFlow(false)
-    override val subscriptions = _subscriptions.asStateFlow()
     override val basicContent = _basicContent.asStateFlow()
     override val premiumContent = _premiumContent.asStateFlow()
+    override val loading: StateFlow<Boolean> = MutableStateFlow(false)
 
     /**
      * Fetch fake basic content and post results to [basicContent].
      * This will fail if the user does not have a basic subscription.
      */
     override suspend fun updateBasicContent() {
-        val subs = subscriptions.value
-        if (subs.isNullOrEmpty()) {
+        if (subscriptions.isEmpty()) {
             _basicContent.emit(null)
             return
         }
         // Premium subscriptions also give access to basic content.
-        if (subs[0].isBasicContent || isPremiumContent(subs[0])) {
+        if (subscriptions[0].isBasicContent || isPremiumContent(subscriptions[0])) {
             _basicContent.emit(ContentResource("https://example.com/basic.jpg"))
         } else {
             _basicContent.emit(null)
@@ -62,12 +59,11 @@ class FakeServerFunctions : ServerFunctions {
      * This will fail if the user does not have a premium subscription.
      */
     override suspend fun updatePremiumContent() {
-        val subs = subscriptions.value
-        if (subs.isNullOrEmpty()) {
+        if (subscriptions.isEmpty()) {
             _premiumContent.emit(null)
             return
         }
-        if (isPremiumContent(subs[0])) {
+        if (isPremiumContent(subscriptions[0])) {
             _premiumContent.emit(ContentResource("https://example.com/premium.jpg"))
         } else {
             _premiumContent.emit(null)
@@ -77,38 +73,40 @@ class FakeServerFunctions : ServerFunctions {
     /**
      * Fetches fake subscription data and posts successful results to [subscriptions].
      */
-    override suspend fun updateSubscriptionStatus() {
-        _subscriptions.emit(ArrayList<SubscriptionStatus>().apply {
+    override suspend fun fetchSubscriptionStatus(): List<SubscriptionStatus> {
+        subscriptions = ArrayList<SubscriptionStatus>().apply {
             nextFakeSubscription()?.let {
                 add(it)
             }
-        })
+        }
+        return subscriptions
     }
 
-    override suspend fun registerSubscription(sku: String, purchaseToken: String) {
-        // When successful, return subscription results.
-        // When response code is HTTP 409 CONFLICT create an already owned subscription.
-        _subscriptions.emit(
-            when (sku) {
-                Constants.BASIC_SKU -> listOf(createFakeBasicSubscription())
-                Constants.PREMIUM_SKU -> listOf(createFakePremiumSubscription())
-                else -> listOf(
-                    createAlreadyOwnedSubscription(
-                        sku = sku, purchaseToken = purchaseToken
-                    )
+    override suspend fun registerSubscription(sku: String, purchaseToken: String):
+        List<SubscriptionStatus> {
+        val result = when (sku) {
+            Constants.BASIC_SKU -> listOf(createFakeBasicSubscription())
+            Constants.PREMIUM_SKU -> listOf(createFakePremiumSubscription())
+            else -> listOf(
+                createAlreadyOwnedSubscription(
+                    sku = sku, purchaseToken = purchaseToken
                 )
-            }
-        )
+            )
+        }
+        subscriptions = result
+        return result
     }
 
-    override suspend fun transferSubscription(sku: String, purchaseToken: String) {
+    override suspend fun transferSubscription(sku: String, purchaseToken: String):
+        List<SubscriptionStatus> {
         val subscription = createFakeBasicSubscription().apply {
             this.sku = sku
             this.purchaseToken = purchaseToken
             subAlreadyOwned = false
             isEntitlementActive = true
         }
-        _subscriptions.emit(listOf(subscription))
+        subscriptions = listOf(subscription)
+        return subscriptions
     }
 
     override suspend fun registerInstanceId(instanceId: String) = Unit

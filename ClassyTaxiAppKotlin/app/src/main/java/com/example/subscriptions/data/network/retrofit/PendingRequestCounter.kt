@@ -18,17 +18,15 @@ package com.example.subscriptions.data.network.retrofit
 
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Keep track of all pending network requests and set [SteFlow] "loading"
+ * Keep track of all pending network requests and set [StateFlow] "loading"
  * to true when there remaining pending requests and false when all requests have been responded to.
  *
- * SteFlow Object "loading" is used to show a progress bar in the UI.
- *
- * TODO(cassigbe@): Improve Pending requests count according to http/b/199924571.
- *
+ * TODO(cassigbe@): Improve Pending requests count according to b/199924571.
  */
 class PendingRequestCounter {
 
@@ -37,25 +35,34 @@ class PendingRequestCounter {
      */
     private val pendingRequestCount = AtomicInteger()
 
+    private val _loading = MutableStateFlow(false)
     /**
      * True when there are pending network requests.
+     * This is used to show a progress bar in the UI.
      */
-    private val _loading = MutableStateFlow(false)
-    val loading = _loading.asStateFlow()
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    /**
+     * Executes the given [block] function while increase and decrease the counter.
+     */
+    suspend inline fun <T> use(block: () -> T): T {
+        increment()
+        try {
+            return block()
+        } finally {
+            decrement()
+        }
+    }
 
     /**
      * Increment request count and update loading value.
-     * Must plan on calling [.decrementRequestCount] when the request completes.
-     *
+     * Must plan on calling [decrement] when the request completes.
      */
-    suspend fun incrementRequestCount() {
-        val newPendingRequestCount = pendingRequestCount.incrementAndGet()
-        Log.i(TAG, "Pending Server Requests: $newPendingRequestCount")
-        if (newPendingRequestCount <= 0) {
-            Log.w(
-                TAG, "Unexpectedly low request count after new request: "
-                        + newPendingRequestCount
-            )
+    suspend fun increment() {
+        val newCount = pendingRequestCount.incrementAndGet()
+        Log.i(TAG, "Pending Server Requests: $newCount")
+        if (newCount <= 0) {
+            Log.e(TAG, "Unexpectedly low request count after new request: $newCount")
             _loading.emit(false)
         } else {
             _loading.emit(true)
@@ -64,20 +71,16 @@ class PendingRequestCounter {
 
     /**
      * Decrement request count and update loading value.
-     * Must call [.incrementRequestCount] each time a network call is made.
-     * and call [.decrementRequestCount] when the server responds to the request.
-     *
+     * Must call [increment] each time a network call is made.
+     * and call [decrement] when the server responds to the request.
      */
-    suspend fun decrementRequestCount() {
-        val newPendingRequestCount = pendingRequestCount.decrementAndGet()
-        Log.i(TAG, "Pending Server Requests: $newPendingRequestCount")
-        if (newPendingRequestCount < 0) {
-            Log.w(
-                TAG, "Unexpectedly negative request count: "
-                        + newPendingRequestCount
-            )
+    suspend fun decrement() {
+        val newCount = pendingRequestCount.decrementAndGet()
+        Log.i(TAG, "Pending Server Requests: $newCount")
+        if (newCount < 0) {
+            Log.w(TAG, "Unexpectedly negative request count: $newCount")
             _loading.emit(false)
-        } else if (newPendingRequestCount == 0) {
+        } else if (newCount == 0) {
             _loading.emit(false)
         }
     }
@@ -85,5 +88,4 @@ class PendingRequestCounter {
     companion object {
         private const val TAG = "RequestCounter"
     }
-
 }

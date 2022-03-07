@@ -46,7 +46,7 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
     /**
      * Subscriptions record according to the server.
      */
-    private val subscriptions = (application as SubApp).repository.subscriptions
+    private val subscriptions: StateFlow<List<SubscriptionStatus>> = (application as SubApp).repository.subscriptions
 
     /**
      * Send an event when the Activity needs to buy something.

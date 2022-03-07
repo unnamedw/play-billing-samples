@@ -36,7 +36,7 @@ class SubRemoteDataSource private constructor(
     /**
      * StateFlow with the [SubscriptionStatus] information.
      */
-    val subscriptions = serverFunctions.subscriptions
+//    val subscriptions = serverFunctions.subscriptions
 
     /**
      * Live Data with the basic content.
@@ -61,9 +61,7 @@ class SubRemoteDataSource private constructor(
     /**
      * GET request for subscription status.
      */
-    suspend fun updateSubscriptionStatus() {
-        serverFunctions.fetchSubscriptionStatus()
-    }
+    suspend fun fetchSubscriptionStatus() = serverFunctions.fetchSubscriptionStatus()
 
     /**
      * POST request to register subscription.

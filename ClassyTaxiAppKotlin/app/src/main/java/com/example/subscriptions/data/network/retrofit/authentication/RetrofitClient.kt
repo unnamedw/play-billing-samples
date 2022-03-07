@@ -16,35 +16,39 @@
 
 package com.example.subscriptions.data.network.retrofit.authentication
 
+import com.example.subscriptions.BuildConfig
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import okhttp3.logging.HttpLoggingInterceptor.Level
 import java.util.concurrent.TimeUnit
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
 
-
 /**
- * Creates Retrofit instances that [RemoteServerFunctionImpl]
+ * Creates Retrofit instances that [ServerFunctionImpl]
  * uses to make authenticated HTTPS requests.
  *
  * @param <S>
  */
 class RetrofitClient<S>(baseUrl: String, serviceClass: Class<S>) {
-    private var service: S
+    private val service: S
 
     init {
-        val gson: Gson = GsonBuilder().create()
+        val gson = GsonBuilder().create()
+        val loggingInterceptor = HttpLoggingInterceptor()
+        loggingInterceptor.level = if (BuildConfig.DEBUG) Level.BASIC else Level.NONE
 
-        val okHttpClient: OkHttpClient = OkHttpClient.Builder()
+        val okHttpClient = OkHttpClient.Builder()
             .connectTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .addInterceptor(loggingInterceptor)
             .addInterceptor(UserIdTokenInterceptor())
             .build()
-
-        val retrofit: Retrofit = Retrofit.Builder()
+        val retrofit = Retrofit.Builder()
             .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(ScalarsConverterFactory.create())

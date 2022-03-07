@@ -26,7 +26,7 @@ class SubLocalDataSource private constructor(
     /**
      * Get the list of subscriptions from the DAO
      */
-    suspend fun getSubscriptions() = subscriptionStatusDao.getAll()
+    fun getSubscriptions(): Flow<List<SubscriptionStatus>> = subscriptionStatusDao.getAll()
 
     suspend fun updateSubscriptions(subscriptions: List<SubscriptionStatus>) {
         // Delete existing subscriptions.

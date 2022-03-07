@@ -21,11 +21,12 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.subscriptions.data.SubscriptionStatus
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SubscriptionStatusDao {
     @Query("SELECT * FROM subscriptions")
-    suspend fun getAll(): List<SubscriptionStatus>
+    fun getAll(): Flow<List<SubscriptionStatus>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(subscriptions: List<SubscriptionStatus>)
