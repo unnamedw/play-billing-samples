@@ -34,11 +34,6 @@ class SubRemoteDataSource private constructor(
         get() = serverFunctions.loading
 
     /**
-     * StateFlow with the [SubscriptionStatus] information.
-     */
-//    val subscriptions = serverFunctions.subscriptions
-
-    /**
      * Live Data with the basic content.
      */
     val basicContent = serverFunctions.basicContent

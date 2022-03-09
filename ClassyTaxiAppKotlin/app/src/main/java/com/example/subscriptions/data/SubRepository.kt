@@ -117,47 +117,45 @@ class SubRepository private constructor(
         val mergedSubscriptions =
             mergeSubscriptionsAndPurchases(currentSubscriptions, remoteSubscriptions, purchases)
 
-        externalScope.launch {
-            val readyToStoreLocally = remoteSubscriptions?.let {
-                acknowledgeRegisteredPurchaseTokens(it)
-            } ?: true
-            if (!readyToStoreLocally) return@launch
+        val readyToStoreLocally = remoteSubscriptions?.let {
+            acknowledgeRegisteredPurchaseTokens(it)
+        } ?: true
+        if (!readyToStoreLocally) return
 
-            // Store the subscription information when it changes.
-            localDataSource.updateSubscriptions(mergedSubscriptions)
+        // Store the subscription information when it changes.
+        localDataSource.updateSubscriptions(mergedSubscriptions)
 
-            // Update the content when the subscription changes.
-            remoteSubscriptions?.let {
-                // Figure out which content we need to fetch.
-                var updateBasic = false
-                var updatePremium = false
-                for (subscription in it) {
-                    when (subscription.sku) {
-                        Constants.BASIC_SKU -> {
-                            updateBasic = true
-                        }
-                        Constants.PREMIUM_SKU -> {
-                            updatePremium = true
-                            // Premium subscribers get access to basic content as well.
-                            updateBasic = true
-                        }
+        // Update the content when the subscription changes.
+        remoteSubscriptions?.let {
+            // Figure out which content we need to fetch.
+            var updateBasic = false
+            var updatePremium = false
+            for (subscription in it) {
+                when (subscription.sku) {
+                    Constants.BASIC_SKU -> {
+                        updateBasic = true
+                    }
+                    Constants.PREMIUM_SKU -> {
+                        updatePremium = true
+                        // Premium subscribers get access to basic content as well.
+                        updateBasic = true
                     }
                 }
-
-                if (updateBasic) {
-                    remoteDataSource.updateBasicContent()
-                } else {
-                    // If we no longer own this content, clear it from the UI.
-                    _basicContent.emit(null)
-                }
-                if (updatePremium) {
-                    remoteDataSource.updatePremiumContent()
-                } else {
-                    // If we no longer own this content, clear it from the UI.
-                    _premiumContent.emit(null)
-                }
             }
-        }.join()
+
+            if (updateBasic) {
+                remoteDataSource.updateBasicContent()
+            } else {
+                // If we no longer own this content, clear it from the UI.
+                _basicContent.emit(null)
+            }
+            if (updatePremium) {
+                remoteDataSource.updatePremiumContent()
+            } else {
+                // If we no longer own this content, clear it from the UI.
+                _premiumContent.emit(null)
+            }
+        }
     }
 
     /**
@@ -348,10 +346,14 @@ class SubRepository private constructor(
         fun getInstance(
             localDataSource: SubLocalDataSource,
             subRemoteDataSource: SubRemoteDataSource,
-            billingClientLifecycle: BillingClientLifecycle
+            billingClientLifecycle: BillingClientLifecycle,
+            externalScope: CoroutineScope =
+                CoroutineScope(SupervisorJob() + Dispatchers.Default)
         ): SubRepository =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: SubRepository(localDataSource, subRemoteDataSource, billingClientLifecycle)
+                INSTANCE ?: SubRepository(
+                    localDataSource, subRemoteDataSource, billingClientLifecycle, externalScope
+                )
                     .also { INSTANCE = it }
             }
     }
