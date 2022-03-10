@@ -138,7 +138,7 @@ This sample application uses Firebase (Auth, Notifications, Firestore).
 To use the Google Play Billing APIs, you must pick a unique package name and upload a
 [signed release APK](https://developer.android.com/studio/publish/app-signing.html) to Google Play.
 The Android app will only build after you include a compatible `google-services.json` file from the
-Firebase configuration.
+Firebase configuration
 
 ## Build your APK from Android Studio
 
