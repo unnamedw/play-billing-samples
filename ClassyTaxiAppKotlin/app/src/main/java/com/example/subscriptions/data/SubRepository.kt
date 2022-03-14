@@ -25,6 +25,7 @@ import com.example.subscriptions.data.network.SubRemoteDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Repository handling the work with subscriptions.
@@ -49,21 +51,23 @@ class SubRepository private constructor(
      */
     val loading: StateFlow<Boolean> = remoteDataSource.loading
 
-    private val _subscriptions = MutableStateFlow<List<SubscriptionStatus>>(emptyList())
     /**
      * [MutableStateFlow] to coordinate updates from the database and the network.
      * Intended to be collected by ViewModel
      */
-    val subscriptions = _subscriptions.asStateFlow()
+    val subscriptions: StateFlow<List<SubscriptionStatus>> =
+        localDataSource.getSubscriptions()
+            .stateIn(externalScope, SharingStarted.WhileSubscribed(), emptyList())
 
     private val _basicContent = MutableStateFlow<ContentResource?>(null)
+    private val _premiumContent = MutableStateFlow<ContentResource?>(null)
+
     /**
      * [StateFlow] with the basic content.
      * Intended to be collected by ViewModel
      */
     val basicContent = _basicContent.asStateFlow()
 
-    private val _premiumContent = MutableStateFlow<ContentResource?>(null)
     /**
      * [StateFlow] with the premium content.
      * Intended to be collected by ViewModel
@@ -85,75 +89,61 @@ class SubRepository private constructor(
             }
         }
 
-        // Observed network changes are store in the database.
-        // The database changes will propagate to the ViewModel.
-        // We could write different logic to ensure that the network call completes when
-        // the UI component is inactive.
-        externalScope.launch {
-            webDataSource.subscriptions.collect {
-                Log.i(TAG, "webDataSource.subscriptions updated - ${it.size}")
-                updateSubscriptionsFromNetwork(it)
-            }
-        }
-
         // When the list of purchases changes, we need to update the subscription status
         // to indicate whether the subscription is local or not. It is local if the
         // the Google Play Billing APIs return a Purchase record for the SKU. It is not
         // local if there is no record of the subscription on the device.
-        billingClientLifecycle.purchases.observeForever { purchases ->
-            // We only need to update the database if the isLocalPurchase field needs to change.
-            subscriptions.value.let {
-                val hasChanged = updateLocalPurchaseTokens(it, purchases)
+        externalScope.launch {
+            billingClientLifecycle.purchases.collect { purchases ->
+                Log.i(TAG, "Collected purchases...")
+                val currentSubscriptions = subscriptions.value
+                val hasChanged = updateLocalPurchaseTokens(currentSubscriptions, purchases)
+                // We only need to update the database if [isLocalPurchase] field needs to be changed.
                 if (hasChanged) {
-                    // FIXME(b/219175303) temporal impl.
-                    externalScope.launch {
-                        localDataSource.updateSubscriptions(it)
-                        val updatedList = localDataSource.getSubscriptions()
-                        Log.i(">>>", "billingClientLifecycle.purchases - ${updatedList.size}")
-                        _subscriptions.emit(updatedList)
-                    }
+                     localDataSource.updateSubscriptions(currentSubscriptions)
+                }
+                purchases.forEach {
+                    registerSubscription(it.skus.first(), it.purchaseToken)
                 }
             }
         }
     }
 
-    fun updateSubscriptionsFromNetwork(remoteSubscriptions: List<SubscriptionStatus>?) {
-        val oldSubscriptions = subscriptions.value
+    suspend fun updateSubscriptionsFromNetwork(remoteSubscriptions: List<SubscriptionStatus>?) {
+        Log.i(TAG, "Updating subscriptions from remote: ${remoteSubscriptions?.size}")
+
+        val currentSubscriptions = subscriptions.value
         val purchases = billingClientLifecycle.purchases.value
         val mergedSubscriptions =
-            mergeSubscriptionsAndPurchases(oldSubscriptions, remoteSubscriptions, purchases)
-        remoteSubscriptions?.let {
-            acknowledgeRegisteredPurchaseTokens(it)
-        }
+            mergeSubscriptionsAndPurchases(currentSubscriptions, remoteSubscriptions, purchases)
 
-        // Store the subscription information when it changes.
-        // FIXME(b/219175303) temporal impl.
         externalScope.launch {
-            localDataSource.updateSubscriptions(mergedSubscriptions)
-            val updatedSubs = localDataSource.getSubscriptions()
-            _subscriptions.emit(updatedSubs)
-        }
+            val readyToStoreLocally = remoteSubscriptions?.let {
+                acknowledgeRegisteredPurchaseTokens(it)
+            } ?: true
+            if (!readyToStoreLocally) return@launch
 
-        // Update the content when the subscription changes.
-        remoteSubscriptions?.let {
-            // Figure out which content we need to fetch.
-            var updateBasic = false
-            var updatePremium = false
-            for (subscription in it) {
-                when (subscription.sku) {
-                    Constants.BASIC_SKU -> {
-                        updateBasic = true
-                    }
-                    Constants.PREMIUM_SKU -> {
-                        updatePremium = true
-                        // Premium subscribers get access to basic content as well.
-                        updateBasic = true
+            // Store the subscription information when it changes.
+            localDataSource.updateSubscriptions(mergedSubscriptions)
+
+            // Update the content when the subscription changes.
+            remoteSubscriptions?.let {
+                // Figure out which content we need to fetch.
+                var updateBasic = false
+                var updatePremium = false
+                for (subscription in it) {
+                    when (subscription.sku) {
+                        Constants.BASIC_SKU -> {
+                            updateBasic = true
+                        }
+                        Constants.PREMIUM_SKU -> {
+                            updatePremium = true
+                            // Premium subscribers get access to basic content as well.
+                            updateBasic = true
+                        }
                     }
                 }
-            }
 
-            // FIXME(b/219175303) temporal impl.
-            externalScope.launch {
                 if (updateBasic) {
                     remoteDataSource.updateBasicContent()
                 } else {
@@ -167,19 +157,22 @@ class SubRepository private constructor(
                     _premiumContent.emit(null)
                 }
             }
-        }
+        }.join()
     }
 
     /**
      * Acknowledge subscriptions that have been registered by the server.
+     * Returns true if the param list was empty or all acknowledgement were succeeded
      */
-    private fun acknowledgeRegisteredPurchaseTokens(
+    private suspend fun acknowledgeRegisteredPurchaseTokens(
         remoteSubscriptions: List<SubscriptionStatus>
-    ) {
-        for (remoteSubscription in remoteSubscriptions) {
-            remoteSubscription.purchaseToken?.let { purchaseToken ->
-                billingClientLifecycle.acknowledgePurchase(purchaseToken)
-            }
+    ): Boolean {
+        val tokenList = remoteSubscriptions
+            .filter { !it.isAcknowledged }
+            .mapNotNull { it.purchaseToken }
+        if (tokenList.isEmpty()) return true
+        return tokenList.all {
+            billingClientLifecycle.acknowledgePurchase(it)
         }
     }
 
@@ -269,28 +262,42 @@ class SubRepository private constructor(
     /**
      * Fetch subscriptions from the server and update local data source.
      */
-    fun fetchSubscriptions() {
-        externalScope.launch {
-            remoteDataSource.updateSubscriptionStatus()
-        }
-    }
+    suspend fun fetchSubscriptions(): Result<Unit> =
+        externalScope.async {
+            try {
+                val subscriptions = remoteDataSource.fetchSubscriptionStatus()
+                localDataSource.updateSubscriptions(subscriptions)
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }.await()
 
     /**
      * Register subscription to this account and update local data source.
      */
-    fun registerSubscription(sku: String, purchaseToken: String) {
-        externalScope.launch {
-            val subs = remoteDataSource.registerSubscription(sku = sku, purchaseToken = purchaseToken)
-        }
+    suspend fun registerSubscription(sku: String, purchaseToken: String): Result<Unit> {
+        return externalScope.async {
+            try {
+                val subs =
+                    remoteDataSource.registerSubscription(sku = sku, purchaseToken = purchaseToken)
+                // TODO(b/134506821): Acknowledge purchases on the server.
+
+                updateSubscriptionsFromNetwork(subs)
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }.await()
     }
 
     /**
      * Transfer subscription to this account and update local data source.
      */
-    fun transferSubscription(sku: String, purchaseToken: String) {
+    suspend fun transferSubscription(sku: String, purchaseToken: String) {
         externalScope.launch {
             remoteDataSource.postTransferSubscriptionSync(sku = sku, purchaseToken = purchaseToken)
-        }
+        }.join()
     }
 
     /**
@@ -298,7 +305,11 @@ class SubRepository private constructor(
      */
     fun registerInstanceId(instanceId: String) {
         externalScope.launch {
-            remoteDataSource.postRegisterInstanceId(instanceId)
+            try {
+                remoteDataSource.postRegisterInstanceId(instanceId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to register the instance ID - ${e.localizedMessage}")
+            }
         }
     }
 
@@ -307,15 +318,21 @@ class SubRepository private constructor(
      */
     fun unregisterInstanceId(instanceId: String) {
         externalScope.launch {
-            remoteDataSource.postUnregisterInstanceId(instanceId)
+            try {
+                remoteDataSource.postUnregisterInstanceId(instanceId)
+            } catch (e: Exception) {
+                // In general, this should trigger error event (eg. by using Result object),
+                // then ViewModel should collect it and show appropriate error to user.
+                Log.e(TAG, "Failed to register the instance ID - ${e.localizedMessage}")
+            }
         }
     }
 
     /**
      * Delete local user data when the user signs out.
      */
-    fun deleteLocalUserData() {
-        externalScope.launch {
+    suspend fun deleteLocalUserData() {
+        withContext(externalScope.coroutineContext) {
             localDataSource.deleteLocalUserData()
             _basicContent.emit(null)
             _premiumContent.emit(null)

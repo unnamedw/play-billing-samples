@@ -21,7 +21,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import com.android.billingclient.api.Purchase
 import com.example.subscriptions.Constants
 import com.example.subscriptions.R
@@ -53,63 +53,51 @@ class TvMainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tv_main)
 
-        authenticationViewModel = ViewModelProviders.of(this).get(FirebaseUserViewModel::class.java)
-        billingViewModel = ViewModelProviders.of(this).get(BillingViewModel::class.java)
+        authenticationViewModel =
+            ViewModelProvider(this).get(FirebaseUserViewModel::class.java)
+        billingViewModel = ViewModelProvider(this).get(BillingViewModel::class.java)
         subscriptionViewModel =
-            ViewModelProviders.of(this).get(SubscriptionStatusViewModel::class.java)
+            ViewModelProvider(this).get(SubscriptionStatusViewModel::class.java)
 
         // Billing APIs are all handled in the this lifecycle observer.
         billingClientLifecycle = (application as SubApp).billingClientLifecycle
         lifecycle.addObserver(billingClientLifecycle)
 
-        // Register purchases when they change.
-        billingClientLifecycle.purchaseUpdateEvent.observe(this, {
-            it?.let {
-                registerPurchases(it)
-            }
-        })
-
         // Launch the billing flow when the user clicks a button to buy something.
-        billingViewModel.buyEvent.observe(this, {
-            it?.let {
+        billingViewModel.buyEvent.observe(this) {
+            if (it != null) {
                 billingClientLifecycle.launchBillingFlow(this, it)
             }
-        })
+        }
 
         // Open the Play Store when this event is triggered.
-        billingViewModel.openPlayStoreSubscriptionsEvent.observe(this, {
+        billingViewModel.openPlayStoreSubscriptionsEvent.observe(this) { sku ->
             Log.i(TAG, "Viewing subscriptions on the Google Play Store")
-            val sku = it
-            val url = if (sku == null) {
-                // If the SKU is not specified, just open the Google Play subscriptions URL.
-                Constants.PLAY_STORE_SUBSCRIPTION_URL
-            } else {
+            val url = sku?.let {
                 // If the SKU is specified, open the deeplink for this SKU on Google Play.
-                String.format(Constants.PLAY_STORE_SUBSCRIPTION_DEEPLINK_URL, sku, packageName)
+                String.format(Constants.PLAY_STORE_SUBSCRIPTION_DEEPLINK_URL, it, packageName)
+            } ?: Constants.PLAY_STORE_SUBSCRIPTION_URL // Or open the Google Play subscriptions URL.
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse(url)
             }
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.data = Uri.parse(url)
             startActivity(intent)
-        })
+        }
 
         // Update authentication UI.
-        authenticationViewModel.firebaseUser.observe(this, {
+        authenticationViewModel.firebaseUser.observe(this) {
             invalidateOptionsMenu()
             if (it == null) {
                 triggerSignIn()
             } else {
-                Log.d(TAG, "CURRENT user: " + it.email + " " + it.displayName)
+                Log.d(TAG, "CURRENT user: ${it.email} ${it.displayName}")
             }
-        })
+        }
 
         // Update subscription information when user changes.
-        authenticationViewModel.userChangeEvent.observe(this, {
+        authenticationViewModel.userChangeEvent.observe(this) {
             subscriptionViewModel.userChanged()
-            billingClientLifecycle.purchaseUpdateEvent.value?.let {
-                registerPurchases(it)
-            }
-        })
-
+            registerPurchases(billingClientLifecycle.purchases.value)
+        }
     }
 
     /**

@@ -20,12 +20,13 @@ import com.example.subscriptions.data.ContentResource
 import com.example.subscriptions.data.SubscriptionStatus
 import com.example.subscriptions.data.network.retrofit.ServerFunctionsImpl
 import kotlinx.coroutines.flow.StateFlow
+import retrofit2.Response
 
 /**
- * Interface to perform the Firebase Function calls and expose the results with [subscriptions].
+ * Interface to perform the remote API calls.
  *
- * Use this class by observing the [subscriptions] StateFlow.
- * Any server updates will be communicated through this StateFlow.
+ * Server updates for loading, basicContent, premiumContent will be communicated
+ * through [StateFlow] variables.
  */
 interface ServerFunctions {
 
@@ -33,13 +34,6 @@ interface ServerFunctions {
      * True when there are pending network requests.
      */
     val loading: StateFlow<Boolean>
-
-    /**
-     * The latest subscription data from the server.
-     *
-     * Must be observed and active in order to receive updates from the server.
-     */
-    val subscriptions: StateFlow<List<SubscriptionStatus>>
 
     /**
      * The basic content URL.
@@ -64,19 +58,19 @@ interface ServerFunctions {
     suspend fun updatePremiumContent()
 
     /**
-     * Fetches subscription data from the server and posts successful results to [subscriptions].
+     * Fetches subscription data from the server.
      */
-    suspend fun fetchSubscriptionStatus()
+    suspend fun fetchSubscriptionStatus(): List<SubscriptionStatus>
 
     /**
-     * Register a subscription with the server and posts successful results to [subscriptions].
+     * Register a subscription with the server and return results.
      */
     suspend fun registerSubscription(sku: String, purchaseToken: String): List<SubscriptionStatus>
 
     /**
-     * Transfer subscription to this account posts successful results to [subscriptions].
+     * Transfer subscription to this account posts
      */
-    suspend fun transferSubscription(sku: String, purchaseToken: String)
+    suspend fun transferSubscription(sku: String, purchaseToken: String): List<SubscriptionStatus>
 
     /**
      * Register Instance ID when the user signs in or the token is refreshed.
@@ -89,7 +83,6 @@ interface ServerFunctions {
     suspend fun unregisterInstanceId(instanceId: String)
 
     companion object {
-
         @Volatile
         private var INSTANCE: ServerFunctions? = null
 
@@ -98,5 +91,4 @@ interface ServerFunctions {
                     INSTANCE ?: ServerFunctionsImpl().also { INSTANCE = it }
                 }
     }
-
 }

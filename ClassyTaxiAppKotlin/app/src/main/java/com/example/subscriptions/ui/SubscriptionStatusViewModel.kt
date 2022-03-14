@@ -19,12 +19,16 @@ package com.example.subscriptions.ui
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.subscriptions.SubApp
 import com.example.subscriptions.data.SubRepository
 import com.example.subscriptions.data.SubscriptionStatus
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class SubscriptionStatusViewModel(
     application: Application,
@@ -53,6 +57,10 @@ class SubscriptionStatusViewModel(
      */
     val premiumContent = repository.premiumContent
 
+    // TODO show UI status in View
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage = _errorMessage.asStateFlow()
+
     fun unregisterInstanceId() {
         // Unregister current Instance ID before the user signs out.
         // This is an authenticated call, so you cannot do this after the sign-out has completed.
@@ -62,22 +70,29 @@ class SubscriptionStatusViewModel(
     }
 
     fun userChanged() {
-        repository.deleteLocalUserData()
-        FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
-            if (!task.isSuccessful) {
-                Log.w(TAG, "Fetching FCM registration token failed", task.exception)
-                return@OnCompleteListener
-            }
-            val token = task.result
-            if (token != null) {
-                registerInstanceId(token)
-            }
-        })
-        repository.fetchSubscriptions()
+        viewModelScope.launch {
+            repository.deleteLocalUserData()
+            FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.w(TAG, "Fetching FCM registration token failed", task.exception)
+                    return@OnCompleteListener
+                }
+                val token = task.result
+                if (token != null) {
+                    registerInstanceId(token)
+                }
+            })
+            repository.fetchSubscriptions()
+        }
     }
 
     fun manualRefresh() {
-        repository.fetchSubscriptions()
+        viewModelScope.launch {
+            val result = repository.fetchSubscriptions()
+            if (result.isFailure) {
+                _errorMessage.emit(result.exceptionOrNull()?.localizedMessage)
+            }
+        }
     }
 
     /**
@@ -98,19 +113,27 @@ class SubscriptionStatusViewModel(
     /**
      * Register a new subscription.
      */
-    fun registerSubscription(sku: String, purchaseToken: String) =
-        repository.registerSubscription(sku, purchaseToken)
+    fun registerSubscription(sku: String, purchaseToken: String) {
+        viewModelScope.launch {
+            val result = repository.registerSubscription(sku, purchaseToken)
+            if (result.isFailure) {
+                _errorMessage.emit(result.exceptionOrNull()?.localizedMessage)
+            }
+        }
+    }
 
     /**
      * Transfer the subscription to this account.
      */
     fun transferSubscriptions() {
         Log.d(TAG, "transferSubscriptions")
-        subscriptions.value.forEach { subscription ->
-            val sku = subscription.sku
-            val purchaseToken = subscription.purchaseToken
-            if (sku != null && purchaseToken != null) {
-                repository.transferSubscription(sku = sku, purchaseToken = purchaseToken)
+        viewModelScope.launch {
+            subscriptions.value.forEach { subscription ->
+                val sku = subscription.sku
+                val purchaseToken = subscription.purchaseToken
+                if (sku != null && purchaseToken != null) {
+                    repository.transferSubscription(sku = sku, purchaseToken = purchaseToken)
+                }
             }
         }
     }
