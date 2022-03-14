@@ -349,15 +349,17 @@ class BillingClientLifecycle private constructor(
                     // Retry to ack because these errors may be recoverable.
                     val duration = 500L * 2.0.pow(trial).toLong()
                     delay(duration)
-                    continue
+                    if (trial < MAX_RETRY_ATTEMPT) {
+                        Log.w(TAG, "Retrying($trial) to acknowledge for token $purchaseToken - code: ${result.responseCode}, message: ${result.debugMessage}")
+                    }
                 }
                 response.isNonrecoverableError || response.isTerribleFailure -> {
                     Log.e(TAG, "Failed to acknowledge for token $purchaseToken - code: ${result.responseCode}, message: ${result.debugMessage}")
-                    return false
+                    break
                 }
             }
         }
-        return false
+        throw Exception("Failed to acknowledge the purchase!")
     }
 
     companion object {

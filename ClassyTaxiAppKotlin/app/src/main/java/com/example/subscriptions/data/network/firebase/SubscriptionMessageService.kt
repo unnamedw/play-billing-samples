@@ -49,7 +49,11 @@ class SubscriptionMessageService : FirebaseMessagingService() {
                     Log.i(TAG, "onMessageReceived - ${result.subscriptions} ")
                     val app = application as SubApp
                     externalScope.launch {
-                        app.repository.updateSubscriptionsFromNetwork(result.subscriptions)
+                        try {
+                            app.repository.updateSubscriptionsFromNetwork(result.subscriptions)
+                        } catch (e: Exception) {
+                            Log.e(TAG, e.localizedMessage ?: "Failed to update subscription!")
+                        }
                     }
                 }
             }
