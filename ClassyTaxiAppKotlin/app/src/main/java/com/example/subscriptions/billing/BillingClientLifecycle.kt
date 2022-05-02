@@ -27,13 +27,14 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.ProductDetailsResponseListener
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesResponseListener
 import com.android.billingclient.api.PurchasesUpdatedListener
-import com.android.billingclient.api.SkuDetails
-import com.android.billingclient.api.SkuDetailsParams
-import com.android.billingclient.api.SkuDetailsResponseListener
-import com.android.billingclient.api.acknowledgePurchase
+import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
+//import com.android.billingclient.api.acknowledgePurchase
 import com.example.subscriptions.Constants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,9 +50,10 @@ class BillingClientLifecycle private constructor(
     private val externalScope: CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
 ) : DefaultLifecycleObserver, PurchasesUpdatedListener, BillingClientStateListener,
-    SkuDetailsResponseListener, PurchasesResponseListener {
+    ProductDetailsResponseListener, PurchasesResponseListener {
 
     private val _purchases = MutableStateFlow<List<Purchase>>(emptyList())
+
     /**
      * Purchases are collectable. This list will be updated when the Billing Library
      * detects new or existing purchases.
@@ -59,9 +61,9 @@ class BillingClientLifecycle private constructor(
     val purchases = _purchases.asStateFlow()
 
     /**
-     * SkuDetails for all known SKUs.
+     * ProductDetails for all known products.
      */
-    val skusWithSkuDetails = MutableLiveData<Map<String, SkuDetails>>()
+    val productsWithProductDetails = MutableLiveData<Map<String, ProductDetails>>()
 
     /**
      * Instantiate a new BillingClient instance.
@@ -98,8 +100,9 @@ class BillingClientLifecycle private constructor(
         val debugMessage = billingResult.debugMessage
         Log.d(TAG, "onBillingSetupFinished: $responseCode $debugMessage")
         if (responseCode == BillingClient.BillingResponseCode.OK) {
-            // The billing client is ready. You can query purchases here.
-            querySkuDetails()
+            // The billing client is ready.
+            // You can query product details and purchases here.
+            queryProductDetails()
             queryPurchases()
         }
     }
@@ -111,74 +114,99 @@ class BillingClientLifecycle private constructor(
     }
 
     /**
-     * In order to make purchases, you need the [SkuDetails] for the item or subscription.
-     * This is an asynchronous call that will receive a result in [onSkuDetailsResponse].
+     * In order to make purchases, you need the [ProductDetails] for the item or subscription.
+     * This is an asynchronous call that will receive a result in [onProductDetailsResponse].
+     *
+     * queryProductDetails uses method calls from GPBL 5.0.0. PBL5, released in May 2022,
+     * is backwards compatible with previous versions.
+     * To learn more about this you can read https://developer.android.com/google/play/billing/compatibility
      */
-    private fun querySkuDetails() {
-        Log.d(TAG, "querySkuDetails")
-        val params = SkuDetailsParams.newBuilder()
-            .setType(BillingClient.SkuType.SUBS)
-            .setSkusList(LIST_OF_SKUS)
-            .build()
-        params.let { skuDetailsParams ->
-            Log.i(TAG, "querySkuDetailsAsync")
-            billingClient.querySkuDetailsAsync(skuDetailsParams, this)
+    private fun queryProductDetails() {
+        Log.d(TAG, "queryProductDetails")
+        val params = QueryProductDetailsParams.newBuilder()
+
+        val productList: MutableList<QueryProductDetailsParams.Product> = arrayListOf()
+        for (product in LIST_OF_PRODUCTS) {
+            productList.add(
+                QueryProductDetailsParams.Product.newBuilder()
+                    .setProductId(product)
+                    .setProductType(BillingClient.ProductType.SUBS)
+                    .build()
+            )
         }
+
+        params.setProductList(productList).let { productDetailsParams ->
+            Log.i(TAG, "queryProductDetailsAsync")
+            billingClient.queryProductDetailsAsync(productDetailsParams.build(), this)
+        }
+
     }
 
     /**
-     * Receives the result from [querySkuDetails].
+     * Receives the result from [queryProductDetails].
      *
-     * Store the SkuDetails and post them in the [skusWithSkuDetails]. This allows other parts
-     * of the app to use the [SkuDetails] to show SKU information and make purchases.
+     * Store the ProductDetails and post them in the [productsWithProductDetails]. This allows other parts
+     * of the app to use the [ProductDetails] to show product information and make purchases.
+     *
+     * onProductDetailsResponse() uses method calls from GPBL 5.0.0. PBL5, released in May 2022,
+     * is backwards compatible with previous versions.
+     * To learn more about this you can read https://developer.android.com/google/play/billing/compatibility
      */
-    override fun onSkuDetailsResponse(
+    override fun onProductDetailsResponse(
         billingResult: BillingResult,
-        skuDetailsList: MutableList<SkuDetails>?
+        productDetailsList: MutableList<ProductDetails>
     ) {
         val response = BillingResponse(billingResult.responseCode)
         val debugMessage = billingResult.debugMessage
         when {
             response.isOk -> {
-                val expectedSkuDetailsCount = LIST_OF_SKUS.size
-                if (skuDetailsList == null) {
-                    skusWithSkuDetails.postValue(emptyMap())
+                val expectedProductDetailsCount = LIST_OF_PRODUCTS.size
+                if (productDetailsList.isNullOrEmpty()) {
+                    productsWithProductDetails.postValue(emptyMap())
                     Log.e(
-                        TAG, "onSkuDetailsResponse: " +
-                            "Expected ${expectedSkuDetailsCount}, " +
-                            "Found null SkuDetails. " +
-                            "Check to see if the SKUs you requested are correctly published " +
-                            "in the Google Play Console."
+                        TAG, "onProductDetailsResponse: " +
+                                "Expected ${expectedProductDetailsCount}, " +
+                                "Found null ProductDetails. " +
+                                "Check to see if the products you requested are correctly published " +
+                                "in the Google Play Console."
                     )
-                } else
-                    skusWithSkuDetails.postValue(HashMap<String, SkuDetails>().apply {
-                        for (details in skuDetailsList) {
-                            put(details.sku, details)
+                } else {
+                    productsWithProductDetails.postValue(HashMap<String, ProductDetails>().apply {
+                        for (productDetails in productDetailsList) {
+                            put(productDetails.productId, productDetails)
                         }
                     }.also { postedValue ->
-                        val skuDetailsCount = postedValue.size
-                        if (skuDetailsCount == expectedSkuDetailsCount) {
-                            Log.i(TAG, "onSkuDetailsResponse: Found $skuDetailsCount SkuDetails")
+                        val productDetailsCount = postedValue.size
+                        if (productDetailsCount == expectedProductDetailsCount) {
+                            Log.i(
+                                TAG,
+                                "onProductDetailsResponse: Found $productDetailsCount ProductDetails"
+                            )
                         } else {
                             Log.e(
-                                TAG, "onSkuDetailsResponse: " +
-                                    "Expected ${expectedSkuDetailsCount}, " +
-                                    "Found $skuDetailsCount SkuDetails. " +
-                                    "Check to see if the SKUs you requested are correctly published " +
-                                    "in the Google Play Console."
+                                TAG, "onProductDetailsResponse: " +
+                                        "Expected ${expectedProductDetailsCount}, " +
+                                        "Found $productDetailsCount ProductDetails. " +
+                                        "Check to see if the products you requested are correctly published " +
+                                        "in the Google Play Console."
                             )
                         }
-                    })
+                        Log.wtf(TAG, "productsWithProductDetails: $productsWithProductDetails")
+                    }
+                    )
+                }
             }
             response.isTerribleFailure -> {
                 // These response codes are not expected.
-                Log.wtf(TAG, "onSkuDetailsResponse: ${response.code} $debugMessage")
+                Log.wtf(TAG, "onProductDetailsResponse: ${response.code} $debugMessage")
             }
             else -> {
-                Log.e(TAG, "onSkuDetailsResponse: ${response.code} $debugMessage")
+                Log.e(TAG, "onProductDetailsResponse: ${response.code} $debugMessage")
             }
+
         }
     }
+
 
     /**
      * Query Google Play Billing for existing purchases.
@@ -189,9 +217,13 @@ class BillingClientLifecycle private constructor(
     fun queryPurchases() {
         if (!billingClient.isReady) {
             Log.e(TAG, "queryPurchases: BillingClient is not ready")
-            return
+            billingClient.startConnection(this)
         }
-        billingClient.queryPurchasesAsync(BillingClient.SkuType.SUBS, this)
+        billingClient.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build(), this
+        )
     }
 
     /**
@@ -232,10 +264,10 @@ class BillingClientLifecycle private constructor(
             BillingClient.BillingResponseCode.DEVELOPER_ERROR -> {
                 Log.e(
                     TAG, "onPurchasesUpdated: Developer error means that Google Play " +
-                        "does not recognize the configuration. If you are just getting started, " +
-                        "make sure you have configured the application correctly in the " +
-                        "Google Play Console. The SKU product ID must match and the APK you " +
-                        "are using must be signed with release keys."
+                            "does not recognize the configuration. If you are just getting started, " +
+                            "make sure you have configured the application correctly in the " +
+                            "Google Play Console. The SKU product ID must match and the APK you " +
+                            "are using must be signed with release keys."
                 )
             }
         }
@@ -286,7 +318,10 @@ class BillingClientLifecycle private constructor(
                 unacknowledgedCounter++
             }
         }
-        Log.d(TAG, "logAcknowledgementStatus: acknowledged=$acknowledgedCounter unacknowledged=$unacknowledgedCounter")
+        Log.d(
+            TAG,
+            "logAcknowledgementStatus: acknowledged=$acknowledgedCounter unacknowledged=$unacknowledgedCounter"
+        )
     }
 
     /**
@@ -318,7 +353,7 @@ class BillingClientLifecycle private constructor(
      * Google Play Developer API. The server has direct access to the user database,
      * so using the Google Play Developer API for acknowledgement might be more reliable.
      * TODO(134506821): Acknowledge purchases on the server.
-     *
+     * TODO: Remove client side purchase acknowledgement after removing the associated tests.
      * If the purchase token is not acknowledged within 3 days,
      * then Google Play will automatically refund and revoke the purchase.
      * This behavior helps ensure that users are not charged for subscriptions unless the
@@ -332,9 +367,13 @@ class BillingClientLifecycle private constructor(
             .build()
 
         for (trial in 1..MAX_RETRY_ATTEMPT) {
-            val result = billingClient.acknowledgePurchase(params)
+            var response = BillingResponse(500)
+            var bResult: BillingResult? = null
+            billingClient.acknowledgePurchase(params) { billingResult ->
+                response = BillingResponse(billingResult.responseCode)
+                bResult = billingResult
+            }
 
-            val response = BillingResponse(result.responseCode)
             when {
                 response.isOk -> {
                     Log.i(TAG, "Acknowledge success - token: $purchaseToken")
@@ -350,11 +389,17 @@ class BillingClientLifecycle private constructor(
                     val duration = 500L * 2.0.pow(trial).toLong()
                     delay(duration)
                     if (trial < MAX_RETRY_ATTEMPT) {
-                        Log.w(TAG, "Retrying($trial) to acknowledge for token $purchaseToken - code: ${result.responseCode}, message: ${result.debugMessage}")
+                        Log.w(
+                            TAG,
+                            "Retrying($trial) to acknowledge for token $purchaseToken - code: ${bResult!!.responseCode}, message: ${bResult!!.debugMessage}"
+                        )
                     }
                 }
                 response.isNonrecoverableError || response.isTerribleFailure -> {
-                    Log.e(TAG, "Failed to acknowledge for token $purchaseToken - code: ${result.responseCode}, message: ${result.debugMessage}")
+                    Log.e(
+                        TAG,
+                        "Failed to acknowledge for token $purchaseToken - code: ${bResult!!.responseCode}, message: ${bResult!!.debugMessage}"
+                    )
                     break
                 }
             }
@@ -366,9 +411,10 @@ class BillingClientLifecycle private constructor(
         private const val TAG = "BillingLifecycle"
         private const val MAX_RETRY_ATTEMPT = 3
 
-        private val LIST_OF_SKUS = listOf(
+        private val LIST_OF_PRODUCTS = listOf(
             Constants.BASIC_SKU,
-            Constants.PREMIUM_SKU
+            Constants.PREMIUM_SKU,
+            Constants.PREPAID_SKU
         )
 
         @Volatile
