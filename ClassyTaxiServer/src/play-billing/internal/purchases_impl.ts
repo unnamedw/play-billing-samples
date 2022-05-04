@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { OneTimeProductPurchase, SubscriptionPurchase, SkuType, Purchase } from "../types/purchases";
+import { OneTimeProductPurchase, SubscriptionPurchase, SkuType, Purchase, SubscriptionState, PausedStateContext, CanceledStateContext, AcknowledgementState, ExternalAccountIdentifiers, SubscribeWithGoogleInfo, SubscriptionPurchaseLineItem, SubscriptionPurchaseV2 } from "../types/purchases";
 import { NotificationType } from "../types/notifications";
 
 const FIRESTORE_OBJECT_INTERNAL_KEYS = ['skuType', 'formOfPayment'];
@@ -230,5 +230,149 @@ export class SubscriptionPurchaseImpl implements SubscriptionPurchase {
 
   activeUntilDate(): Date {
     return new Date(this.expiryTimeMillis);
+  }
+}
+
+/* Library's internal implementation of an SubscriptionPurchase object
+ * It's used inside of the library, not to be exposed to library's consumers.
+ */
+export class SubscriptionPurchaseImplV2 implements SubscriptionPurchaseV2 {
+  // Raw response from server
+  // https://developers.devsite.corp.google.com/android-publisher/api-ref/rest/v3/purchases.subscriptionsv2/get
+  kind: string;
+  regionCode: string;
+  lineItems: Array<SubscriptionPurchaseLineItem>;
+  startTime: number;
+  subscriptionState: SubscriptionState;
+  linkedPurchaseToken: string;
+  pausedStateContext: PausedStateContext;
+  canceledStateContext: CanceledStateContext;
+  testPurchase: any;
+  acknowledgementState: AcknowledgementState;
+  externalAccountIdentifiers: ExternalAccountIdentifiers;
+  subscribeWithGoogleInfo: SubscribeWithGoogleInfo;
+  etag: string;
+
+  // Library-managed Purchase properties
+  packageName: string;
+  purchaseToken: string;
+  sku: string;
+  userId?: string;
+  verifiedAt: number; // timestamp of last purchase verification by Play Developer API
+  replacedByAnotherPurchase: boolean;
+  isMutable: boolean; // indicate if the subscription purchase details can be changed in the future (i.e. expiry date changed because of auto-renewal)
+  latestNotificationType?: NotificationType;
+  expiryTimeMillis: number;
+  autoRenewing: boolean;
+  purchaseType: number;
+  paymentState: number;
+
+  // Convert raw api response from Play Developer API to an SubscriptionPurchase object
+  static fromApiResponse(apiResponse: any, packageName: string, purchaseToken: string, sku: string, verifiedAt:number): SubscriptionPurchaseImplV2 {
+    // Intentionally hide developerPayload as the field was deprecated
+    apiResponse.developerPayload = null;
+
+    const purchase = new SubscriptionPurchaseImplV2();
+    Object.assign(purchase, apiResponse);
+    purchase.purchaseToken = purchaseToken;
+    purchase.sku = sku;
+    purchase.verifiedAt = verifiedAt;
+    purchase.replacedByAnotherPurchase = false;
+    purchase.packageName = packageName;
+    for (const lineItem of purchase.lineItems) {
+      if (lineItem.autoRenewingPlan) {
+        purchase.isMutable = lineItem.autoRenewingPlan.autoRenewEnabled || (verifiedAt < lineItem.expiryTime);
+      } else if (lineItem.prepaidPlan) {
+        purchase.isMutable = true;
+      }
+    }
+
+    return purchase;
+  }
+
+  static fromFirestoreObject(firestoreObject: any): SubscriptionPurchaseImplV2 {
+    const purchase = new SubscriptionPurchaseImplV2();
+    purchase.mergeWithFirestorePurchaseRecord(firestoreObject);
+    return purchase;
+  }
+
+  toFirestoreObject(): any {
+    return purchaseToFirestoreObject(this, SkuType.SUBS);
+  }
+
+  mergeWithFirestorePurchaseRecord(firestoreObject: any) {
+    mergePurchaseWithFirestorePurchaseRecord(this, firestoreObject);
+  }
+
+  isRegisterable(): boolean {
+    const now = Date.now();
+    for (const lineItem of this.lineItems) {
+      const expiryTime = Date.parse(String(lineItem.expiryTime));
+      return (now <= expiryTime);
+    }
+    return false;
+  }
+
+  isAcknowledged(): boolean {
+    if(this.acknowledgementState === AcknowledgementState.ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED) {
+      return true;
+    }
+    return false;
+  }
+
+  // These methods below are convenient utilities that developers can use to interpret Play Developer API response
+  isEntitlementActive(): boolean {
+    const now = Date.now();
+    for (const lineItem of this.lineItems) {
+      const expiryTime = Date.parse(String(lineItem.expiryTime));
+      return (now <= expiryTime) && (!this.replacedByAnotherPurchase);
+    }
+    return false;
+  }
+
+  willRenew(): boolean {
+    for (const lineItem of this.lineItems) {
+      if(lineItem.autoRenewingPlan) {
+        return lineItem.autoRenewingPlan.autoRenewEnabled;
+      }
+      return false;
+    }
+    return false;
+  }
+
+  isTestPurchase(): boolean {
+    return (this.purchaseType === 0);
+  }
+
+  isGracePeriod(): boolean {
+    if (this.subscriptionState === SubscriptionState.SUBSCRIPTION_STATE_IN_GRACE_PERIOD) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  isAccountHold(): boolean {
+    if (this.subscriptionState === SubscriptionState.SUBSCRIPTION_STATE_ON_HOLD) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  isPaused(): boolean {
+    if (this.subscriptionState === SubscriptionState.SUBSCRIPTION_STATE_PAUSED) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  activeUntilDate(): Date {
+    const null_date = new Date(0);
+    for (const lineItem of this.lineItems) {
+      return new Date(lineItem.expiryTime);
+    }
+    return null_date;
   }
 }

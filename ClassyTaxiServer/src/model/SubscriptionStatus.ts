@@ -26,24 +26,20 @@ export class SubscriptionStatus {
   isEntitlementActive: boolean;
   willRenew: boolean;
   activeUntilMillisec: number;
-  isFreeTrial: boolean;
   isGracePeriod: boolean;
   isAccountHold: boolean;
   isPaused: boolean;
   isAcknowledged: boolean;
-  autoResumeTimeMillis: number;
 
-  constructor(subcriptionPurchase: PlayBilling.SubscriptionPurchase) {
+  constructor(subcriptionPurchase: PlayBilling.SubscriptionPurchaseV2) {
     this.sku = subcriptionPurchase.sku;
     this.purchaseToken = subcriptionPurchase.purchaseToken;
     this.isEntitlementActive = subcriptionPurchase.isEntitlementActive();
     this.willRenew = subcriptionPurchase.willRenew();
     this.activeUntilMillisec = subcriptionPurchase.activeUntilDate().getTime();
-    this.isFreeTrial = subcriptionPurchase.isFreeTrial();
     this.isGracePeriod = subcriptionPurchase.isGracePeriod();
     this.isAccountHold = subcriptionPurchase.isAccountHold();
     this.isPaused = subcriptionPurchase.isPaused();
     this.isAcknowledged = subcriptionPurchase.isAcknowledged();
-    this.autoResumeTimeMillis = subcriptionPurchase.autoResumeTimeMillis;
   }
 }

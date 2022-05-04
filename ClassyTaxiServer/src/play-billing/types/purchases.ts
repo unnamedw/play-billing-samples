@@ -87,6 +87,138 @@ export interface SubscriptionPurchase extends Purchase {
   activeUntilDate(): Date;
 }
 
+// Item-level info for a subscription purchase.
+export type SubscriptionPurchaseLineItem = {
+  productId: string;
+  expiryTime: number;
+  autoRenewingPlan: AutoRenewingPlan;
+  prepaidPlan: PrepaidPlan;
+}
+
+// Information related to an auto renewing plan.
+export type AutoRenewingPlan = {
+  autoRenewEnabled: boolean;
+}
+
+// Information related to a prepaid plan.
+export type PrepaidPlan = {
+  allowExtendAfterTime: string;
+}
+
+ // The possible acknowledgement states for a subscription.
+export enum SubscriptionState {
+  SUBSCRIPTION_STATE_UNSPECIFIED,
+  SUBSCRIPTION_STATE_PENDING,
+  SUBSCRIPTION_STATE_ACTIVE,
+  SUBSCRIPTION_STATE_PAUSED,
+  SUBSCRIPTION_STATE_IN_GRACE_PERIOD,
+  SUBSCRIPTION_STATE_ON_HOLD,
+  SUBSCRIPTION_STATE_CANCELED,
+  SUBSCRIPTION_STATE_EXPIRED
+}
+
+// Information specific to a subscription in paused state.
+export type PausedStateContext = {
+  autoResumeTime: string;
+}
+
+// Additional context around canceled subscriptions. Only present if the
+// subscription currently has subscription_state SUBSCRIPTION_STATE_CANCELED.
+export type CanceledStateContext = {
+  userInitiatedCancellation: UserInitiatedCancellation;
+  systemInitiatedCancellation: any;
+  developerInitiatedCancellation: any;
+  replacementCancellation: any;
+}
+
+// Information specific to cancellations initiated by users.
+export type UserInitiatedCancellation = {
+  cancelSurveyResult: CancelSurveyResult;
+  cancelTime: number;
+}
+
+// Result of the cancel survey when the subscription was canceled by the user.
+export type CancelSurveyResult = {
+  reason: CancelSurveyReason;
+  reasonUserInput: string;
+}
+
+// The reason the user selected in the cancel survey.
+export enum CancelSurveyReason {
+  CANCEL_SURVEY_REASON_UNSPECIFIED,
+  CANCEL_SURVEY_REASON_NOT_ENOUGH_USAGE,
+  CANCEL_SURVEY_REASON_TECHNICAL_ISSUES,
+  CANCEL_SURVEY_REASON_COST_RELATED,
+  CANCEL_SURVEY_REASON_FOUND_BETTER_APP,
+  CANCEL_SURVEY_REASON_OTHERS
+}
+
+// The possible acknowledgement states for a subscription.
+export enum AcknowledgementState {
+  ACKNOWLEDGEMENT_STATE_UNSPECIFIED,
+  ACKNOWLEDGEMENT_STATE_PENDING,
+  ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED
+}
+
+// User account identifier in third-party service.
+export type ExternalAccountIdentifiers = {
+  externalAccountId: string;
+  obfuscatedExternalAccountId: string;
+  obfuscatedExternalProfileId: string;
+}
+
+// Information associated with purchases made with [Subscribe with Google]{@link
+// https://developers.google.com/news/subscribe}.
+export type SubscribeWithGoogleInfo = {
+  profileId: string;
+  profileName: string;
+  emailAddress: string;
+  givenName: string;
+  familyName: string;
+}
+/*
+ * Respresenting a recurring subscription purchase made via Google Play Billing
+ * It exposes the raw response received from Google Play Developer API,
+ * and adds some util methods that interpretes the API response to a more human-friendly format.
+ *
+ * @todo Replace the subscriptionsV2 "get" method link with the public link when
+ * the API is released.
+ */
+export interface SubscriptionPurchaseV2 extends Purchase {
+  // Raw response from server
+  // https://developers.devsite.corp.google.com/android-publisher/api-ref/rest/v3/purchases.subscriptionsv2/get
+  kind: string;
+  regionCode: string;
+  lineItems: Array<SubscriptionPurchaseLineItem>;
+  startTime: number;
+  subscriptionState: SubscriptionState;
+  linkedPurchaseToken: string;
+  pausedStateContext: PausedStateContext;
+  canceledStateContext: CanceledStateContext;
+  testPurchase: any;
+  acknowledgementState: AcknowledgementState;
+  externalAccountIdentifiers: ExternalAccountIdentifiers;
+  subscribeWithGoogleInfo: SubscribeWithGoogleInfo;
+  etag: string;
+
+  // Library-managed Purchase properties
+  replacedByAnotherPurchase: boolean;
+  isMutable: boolean; // indicate if the subscription purchase details can be changed in the future (i.e. expiry date changed because of auto-renewal)
+  latestNotificationType?: NotificationType; // store the latest notification type received via Realtime Developer Notification
+
+  isRegisterable(): boolean;
+
+  // These methods below are convenient utilities that developers can use to interpret Play Developer API response
+  isEntitlementActive(): boolean;
+  willRenew(): boolean;
+  isTestPurchase(): boolean;
+  isGracePeriod(): boolean;
+  isAccountHold(): boolean;
+  isPaused(): boolean;
+  activeUntilDate(): Date;
+  isAcknowledged(): boolean;
+}
+
 // Representing type of a purchase / product.
 // https://developer.android.com/reference/com/android/billingclient/api/BillingClient.SkuType.html
 export enum SkuType {
