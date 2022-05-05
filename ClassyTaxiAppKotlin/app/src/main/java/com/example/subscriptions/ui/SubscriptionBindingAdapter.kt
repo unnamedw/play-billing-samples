@@ -33,6 +33,7 @@ import com.example.subscriptions.billing.isBasicContent
 import com.example.subscriptions.billing.isGracePeriod
 import com.example.subscriptions.billing.isPaused
 import com.example.subscriptions.billing.isPremiumContent
+import com.example.subscriptions.billing.isPrepaid
 import com.example.subscriptions.billing.isSubscriptionRestore
 import com.example.subscriptions.billing.isTransferRequired
 import com.example.subscriptions.data.ContentResource
@@ -61,7 +62,7 @@ fun ProgressBar.loadingProgressBar(loading: Boolean?) {
 @BindingAdapter("loadImageOrHide")
 fun ImageView.loadImageOrHide(url: String?) {
     if (url != null) {
-        Log.d(TAG, "Loading image for basic content: $url")
+        Log.d(TAG, "Loading image for content: $url")
         visibility = View.VISIBLE
         Glide.with(context)
             .load(url)
@@ -78,7 +79,7 @@ fun ImageView.loadImageOrHide(url: String?) {
 @BindingAdapter("basicContent")
 fun TextView.updateBasicContent(basicContent: ContentResource?) {
     text = if (basicContent?.url != null)
-        resources.getString(R.string.basic_message)
+        resources.getString(R.string.basic_auto_message)
     else
         resources.getString(R.string.no_basic_content)
 }
@@ -109,6 +110,8 @@ fun LinearLayout.updateHomeViews(subscriptions: List<SubscriptionStatus>?) {
     val accountHoldMessage = findViewById<View>(R.id.home_account_hold_message)
     val accountPausedMessage = findViewById<View>(R.id.home_account_paused_message)
     val basicMessage = findViewById<View>(R.id.home_basic_message)
+    val downgradeMessage = findViewById<View>(R.id.basic_downgrade_message)
+    val prepaidMessage = findViewById<View>(R.id.prepaid_basic_content)
     val accountPausedMessageText = findViewById<TextView>(R.id.home_account_paused_message_text)
 
     // Set visibility assuming no subscription is available.
@@ -119,12 +122,12 @@ fun LinearLayout.updateHomeViews(subscriptions: List<SubscriptionStatus>?) {
     // then the visibility will be changed to View.VISIBLE.
     listOf(
         restoreMessage, gracePeriodMessage, transferMessage, accountHoldMessage,
-        accountPausedMessage, basicMessage
+        accountPausedMessage, basicMessage, prepaidMessage, downgradeMessage
     ).forEach { it.visibility = View.GONE }
 
     // Update based on subscription information.
     subscriptions?.forEach { subscription ->
-        if (isSubscriptionRestore(subscription)) {
+        if (subscription.isBasicContent && isSubscriptionRestore(subscription) && !subscription.isPrepaid) {
             Log.d(TAG, "restore VISIBLE")
             restoreMessage.run {
                 visibility = View.VISIBLE
@@ -157,10 +160,20 @@ fun LinearLayout.updateHomeViews(subscriptions: List<SubscriptionStatus>?) {
             accountPausedMessage.visibility = View.VISIBLE
             paywallMessage.visibility = View.GONE // Paywall gone.
         }
-        if (subscription.isBasicContent || isPremiumContent(subscription)) {
-            Log.d(TAG, "basic VISIBLE")
+        if (subscription.isBasicContent && !isPremiumContent(subscription) && !subscription.isPrepaid) {
+            Log.d(TAG, "Downgrade VISIBLE")
             basicMessage.visibility = View.VISIBLE
             paywallMessage.visibility = View.GONE // Paywall gone.
+        }
+        if (subscription.isPrepaid && subscription.isBasicContent && !isPremiumContent(subscription)) {
+            Log.d(TAG, "Basic Prepaid VISIBLE")
+            prepaidMessage.visibility = View.VISIBLE
+            paywallMessage.visibility = View.GONE
+        }
+        if (!subscription.isBasicContent && isPremiumContent(subscription)) {
+            Log.d(TAG, "Downgrade VISIBLE")
+            downgradeMessage.visibility = View.VISIBLE
+            paywallMessage.visibility = View.GONE
         }
     }
 }
@@ -181,6 +194,7 @@ fun LinearLayout.updatePremiumViews(subscriptions: List<SubscriptionStatus>?) {
     val accountPausedMessage = findViewById<View>(R.id.premium_account_paused_message)
     val premiumContent = findViewById<View>(R.id.premium_premium_content)
     val upgradeMessage = findViewById<View>(R.id.premium_upgrade_message)
+    val prepaidMessage = findViewById<View>(R.id.prepaid_premium_content)
     val accountPausedMessageText = findViewById<TextView>(R.id.premium_account_paused_message_text)
 
     // Set visibility assuming no subscription is available.
@@ -191,17 +205,16 @@ fun LinearLayout.updatePremiumViews(subscriptions: List<SubscriptionStatus>?) {
     // then the visibility will be changed to View.VISIBLE.
     listOf(
         restoreMessage, gracePeriodMessage, transferMessage, accountHoldMessage,
-        accountPausedMessage, premiumContent, upgradeMessage
+        accountPausedMessage, premiumContent, upgradeMessage, prepaidMessage
     ).forEach { it.visibility = View.GONE }
 
     // The Upgrade button should appear if the user has a basic subscription, but does not
     // have a premium subscription. This variable keeps track of whether a premium subscription
     // has been found when looking through the list of subscriptions.
-    var hasPremium = false
     // Update based on subscription information.
     subscriptions?.let {
         for (subscription in subscriptions) {
-            if (isSubscriptionRestore(subscription)) {
+            if (isPremiumContent(subscription) && isSubscriptionRestore(subscription) && !subscription.isPrepaid) {
                 Log.d(TAG, "restore VISIBLE")
                 restoreMessage.run {
                     visibility = View.VISIBLE
@@ -238,19 +251,20 @@ fun LinearLayout.updatePremiumViews(subscriptions: List<SubscriptionStatus>?) {
             // The upgrade message must be shown if there is a basic subscription
             // and there are zero premium subscriptions. We need to keep track of the premium
             // subscriptions and hide the upgrade message if we find any.
-            if (isPremiumContent(subscription)) {
+            if (isPremiumContent(subscription) && !subscription.isPrepaid && !subscription.isBasicContent) {
                 Log.d(TAG, "premium VISIBLE")
                 premiumContent.visibility = View.VISIBLE
                 paywallMessage.visibility = View.GONE // Paywall gone.
-                // Make sure we do not ask for an upgrade when user has premium subscription.
-                hasPremium = true
-                upgradeMessage.visibility = View.GONE
             }
-            if (subscription.isBasicContent && !isPremiumContent(subscription) && !hasPremium) {
-                Log.d(TAG, "basic VISIBLE")
-                // Upgrade message will be hidden if a premium subscription is found later.
+            if (isPremiumContent(subscription) && !subscription.isBasicContent && subscription.isPrepaid) {
+                Log.d(TAG, "Premium Prepaid VISIBLE")
+                prepaidMessage.visibility = View.VISIBLE
+                paywallMessage.visibility = View.GONE
+            }
+            if (!isPremiumContent(subscription) && subscription.isBasicContent) {
+                Log.d(TAG, "Upgrade VISIBLE")
                 upgradeMessage.visibility = View.VISIBLE
-                paywallMessage.visibility = View.GONE // Paywall gone.
+                paywallMessage.visibility = View.GONE
             }
         }
     }

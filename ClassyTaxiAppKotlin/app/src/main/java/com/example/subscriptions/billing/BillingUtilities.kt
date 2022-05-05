@@ -64,7 +64,7 @@ fun purchaseForSku(purchases: List<Purchase>?, sku: String): Purchase? {
  * In this example, the method will return true.
  */
 fun deviceHasGooglePlaySubscription(purchases: List<Purchase>?, sku: String) =
-        purchaseForSku(purchases, sku) != null
+    purchaseForSku(purchases, sku) != null
 
 /**
  * This will return true if the server has a record for the subscription.
@@ -89,27 +89,27 @@ fun deviceHasGooglePlaySubscription(purchases: List<Purchase>?, sku: String) =
  * [deviceHasGooglePlaySubscription].
  */
 fun serverHasSubscription(subscriptions: List<SubscriptionStatus>?, sku: String) =
-        subscriptionForSku(subscriptions, sku) != null
+    subscriptionForSku(subscriptions, sku) != null
 
 /**
  * Returns true if the grace period option should be shown.
  */
 // TODO need to be refactored like isBasicContent
 fun isGracePeriod(subscription: SubscriptionStatus?) =
-        subscription != null &&
-                subscription.isEntitlementActive &&
-                subscription.isGracePeriod &&
-                !subscription.subAlreadyOwned
+    subscription != null &&
+            subscription.isEntitlementActive &&
+            subscription.isGracePeriod &&
+            !subscription.subAlreadyOwned
 
 /**
  * Returns true if the subscription restore option should be shown.
  */
 // TODO need to be refactored like isBasicContent
 fun isSubscriptionRestore(subscription: SubscriptionStatus?) =
-        subscription != null &&
-                subscription.isEntitlementActive &&
-                !subscription.willRenew &&
-                !subscription.subAlreadyOwned
+    subscription != null &&
+            subscription.isEntitlementActive &&
+            !subscription.willRenew &&
+            !subscription.subAlreadyOwned
 
 /**
  * Returns true if the basic content should be shown.
@@ -117,43 +117,52 @@ fun isSubscriptionRestore(subscription: SubscriptionStatus?) =
 val SubscriptionStatus?.isBasicContent: Boolean
     get() =
         this != null &&
-            isEntitlementActive &&
-            Constants.BASIC_SKU == sku &&
-            !subAlreadyOwned
+                isEntitlementActive &&
+                Constants.BASIC_SKU == sku &&
+                !subAlreadyOwned
 
 /**
  * Returns true if premium content should be shown.
  */
 // TODO need to be refactored like isBasicContent
 fun isPremiumContent(subscription: SubscriptionStatus?) =
-        subscription != null &&
-                subscription.isEntitlementActive &&
-                Constants.PREMIUM_SKU == subscription.sku &&
-                !subscription.subAlreadyOwned
+    subscription != null &&
+            subscription.isEntitlementActive &&
+            Constants.PREMIUM_SKU == subscription.sku &&
+            !subscription.subAlreadyOwned
 
 /**
  * Returns true if account hold should be shown.
  */
 // TODO need to be refactored like isBasicContent
 fun isAccountHold(subscription: SubscriptionStatus?) =
-        subscription != null &&
-                !subscription.isEntitlementActive &&
-                subscription.isAccountHold &&
-                !subscription.subAlreadyOwned
+    subscription != null &&
+            !subscription.isEntitlementActive &&
+            subscription.isAccountHold &&
+            !subscription.subAlreadyOwned
 
 /**
  * Returns true if account pause should be shown.
  */
 // TODO need to be refactored like isBasicContent
 fun isPaused(subscription: SubscriptionStatus?) =
-        subscription != null &&
-                !subscription.isEntitlementActive &&
-                subscription.isPaused &&
-                !subscription.subAlreadyOwned
+    subscription != null &&
+            !subscription.isEntitlementActive &&
+            subscription.isPaused &&
+            !subscription.subAlreadyOwned
 
 /**
  * Returns true if the subscription is already owned and requires a transfer to this account.
  */
 // TODO need to be refactored like isBasicContent
 fun isTransferRequired(subscription: SubscriptionStatus?) =
-        subscription != null && subscription.subAlreadyOwned
+    subscription != null && subscription.subAlreadyOwned
+
+/**
+ * Returns true if the subscription is a prepraid.
+ */
+val SubscriptionStatus?.isPrepaid: Boolean
+    get() =
+        this != null &&
+                willRenew
+

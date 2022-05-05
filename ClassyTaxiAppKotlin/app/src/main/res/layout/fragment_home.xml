@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ Copyright 2018 Google LLC. All rights reserved.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,19 +14,26 @@
   ~ limitations under the License.
   -->
 
-<layout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+
         <import type="android.view.View" />
+
         <variable
             name="billingViewModel"
             type="com.example.subscriptions.ui.BillingViewModel" />
+
         <variable
             name="subscriptionViewModel"
             type="com.example.subscriptions.ui.SubscriptionStatusViewModel" />
+
+        <variable
+            name="constants"
+            type="com.example.subscriptions.Constants" />
+
     </data>
 
     <ScrollView
@@ -139,6 +145,14 @@
                             android:layout_marginBottom="@dimen/activity_vertical_margin"
                             android:orientation="vertical">
 
+                            <Button
+                                android:id="@+id/account_hold_button"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.openSubscriptionPageOnGooglePlay()}"
+                                android:text="@string/fix_button_text"
+                                android:theme="@style/ButtonTheme" />
+
                             <ImageView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
@@ -154,14 +168,6 @@
                                 android:layout_marginBottom="@dimen/activity_vertical_margin"
                                 android:text="@string/account_hold_message" />
 
-                            <Button
-                                android:id="@+id/account_hold_button"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:onClick="@{() -> billingViewModel.openSubscriptionPageOnGooglePlay()}"
-                                android:text="@string/fix_button_text"
-                                android:theme="@style/ButtonTheme" />
-
                         </LinearLayout>
 
                         <LinearLayout
@@ -173,6 +179,14 @@
                             android:layout_marginEnd="@dimen/activity_horizontal_margin"
                             android:layout_marginBottom="@dimen/activity_vertical_margin"
                             android:orientation="vertical">
+
+                            <Button
+                                android:id="@+id/account_paused_button"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.openSubscriptionPageOnGooglePlay()}"
+                                android:text="@string/account_paused_button_text"
+                                android:theme="@style/ButtonTheme" />
 
                             <ImageView
                                 android:layout_width="match_parent"
@@ -188,14 +202,6 @@
                                 android:layout_marginTop="@dimen/activity_vertical_margin"
                                 android:layout_marginBottom="@dimen/activity_vertical_margin"
                                 android:text="@string/account_paused_message" />
-
-                            <Button
-                                android:id="@+id/account_paused_button"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:onClick="@{() -> billingViewModel.openSubscriptionPageOnGooglePlay()}"
-                                android:text="@string/account_paused_button_text"
-                                android:theme="@style/ButtonTheme" />
 
                         </LinearLayout>
 
@@ -220,7 +226,62 @@
                                 android:layout_marginEnd="@dimen/activity_horizontal_margin"
                                 android:layout_marginBottom="@dimen/activity_vertical_margin"
                                 app:basicContent="@{subscriptionViewModel.basicContent}"
-                                tools:text="@string/basic_message" />
+                                tools:text="@string/basic_auto_message" />
+
+                            <Button
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_PREPAID_PLAN_TAG, constants.BASIC_SKU, true)}"
+                                android:text="@string/basic_to_prepaid_button"
+                                android:theme="@style/ButtonTheme" />
+
+                        </LinearLayout>
+
+
+                        <LinearLayout
+                            android:id="@+id/prepaid_basic_content"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <ImageView
+                                android:id="@+id/prepaid_basic_image"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:loadImageOrHide="@{subscriptionViewModel.basicContent.url}" />
+
+                            <TextView
+                                android:id="@+id/prepaid_basic_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:layout_marginStart="@dimen/activity_horizontal_margin"
+                                android:layout_marginTop="@dimen/activity_vertical_margin"
+                                android:layout_marginEnd="@dimen/activity_horizontal_margin"
+                                android:layout_marginBottom="@dimen/activity_vertical_margin"
+                                app:basicContent="@{subscriptionViewModel.basicContent}"
+                                tools:text="@string/basic_prepaid_message" />
+
+                            <Button
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_PREPAID_PLAN_TAG, constants.BASIC_SKU, true)}"
+                                android:text="@string/top_up_button"
+                                android:theme="@style/ButtonTheme" />
+
+                            <Button
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_MONTHLY_PLAN, constants.BASIC_SKU, true)}"
+                                android:text="@string/basic_monthly_conversion_button_text"
+                                android:theme="@style/ButtonTheme" />
+
+                            <Button
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_YEARLY_PLAN, constants.BASIC_SKU, true)}"
+                                android:text="@string/basic_yearly_conversion_button_text"
+                                android:theme="@style/ButtonTheme" />
+
 
                         </LinearLayout>
 
@@ -242,16 +303,64 @@
                             <Button
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:onClick="@{() -> billingViewModel.buyBasic()}"
-                                android:text="@string/basic_button_text"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_MONTHLY_PLAN, constants.BASIC_SKU, false)}"
+                                android:text="@string/monthly_plan_button_text"
                                 android:theme="@style/ButtonTheme" />
 
                             <Button
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:onClick="@{() -> billingViewModel.buyPremium()}"
-                                android:text="@string/premium_button_text"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_YEARLY_PLAN, constants.BASIC_SKU, false)}"
+                                android:text="@string/yearly_plan_button_text"
                                 android:theme="@style/ButtonTheme" />
+
+                            <Button
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_PREPAID_PLAN_TAG, constants.BASIC_SKU, false)}"
+                                android:text="@string/prepaid_plan_button_text"
+                                android:theme="@style/ButtonTheme" />
+
+
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/basic_downgrade_message"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="@dimen/activity_horizontal_margin"
+                            android:layout_marginTop="@dimen/activity_vertical_margin"
+                            android:layout_marginEnd="@dimen/activity_horizontal_margin"
+                            android:layout_marginBottom="@dimen/activity_vertical_margin"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/basic_downgrade_message" />
+
+                            <Button
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_MONTHLY_PLAN, constants.BASIC_SKU, true)}"
+                                android:text="@string/monthly_downgrade_button_text"
+                                android:theme="@style/ButtonTheme" />
+
+                            <Button
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_YEARLY_PLAN, constants.BASIC_SKU, true)}"
+                                android:text="@string/yearly_downgrade_button_text"
+                                android:theme="@style/ButtonTheme" />
+
+                            <Button
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:onClick="@{() -> billingViewModel.buyBasePlans(constants.BASIC_PREPAID_PLAN_TAG, constants.BASIC_SKU, true)}"
+                                android:text="@string/basic_prepaid_downgrade_button_text"
+                                android:theme="@style/ButtonTheme" />
+
 
                         </LinearLayout>
 
@@ -260,6 +369,7 @@
                 </androidx.cardview.widget.CardView>
 
             </LinearLayout>
+
 
         </FrameLayout>
 
