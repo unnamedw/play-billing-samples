@@ -62,7 +62,7 @@ to use the Google Play APIs
       
 1. Start the **Play Developer Console Setup**
 
-    * Google Play Billing APIs require the SKUs to be configured in the console
+    * Google Play Billing APIs require the products to be configured in the console
 
 1. Optional: Test with a debug APK and debug signatures on your device
 
@@ -183,12 +183,14 @@ Firebase configuration
 1. [Create subscription products](https://support.google.com/googleplay/android-developer/answer/140504) 
    for a Basic Subscription and Premium Subscription
 
-    * The Android app `Constants.kt` contains 2 SKUs: `"basic_subscription"`
-      and `"premium_subscription"`.
+    * The Android app `Constants.kt` contains 2 products: `"basic_subscription"`
+      and `"premium_subscription"`. `Constants.kt` also contains 6 base plan tags to showcase
+      how subscription products can have multiple base plans.
 
-    * Use the 2 SKUs as the Product ID when creating the subscription products.
+    * Use the 2 products as the Product ID when creating the subscription products and add the tags
+    to the appropriate base plans(monthly and yearly auto-renewing base plans, and prepaid base plans).
 
-    * Write down your product IDs (SKUs) so you can configure your backend server.
+    * Write down your product IDs so you can configure your backend server.
 
 1. [Link the Google Cloud project to the Google Play Developer Account](https://developers.google.com/android-publisher/getting_started#linking_your_api_project)
 
