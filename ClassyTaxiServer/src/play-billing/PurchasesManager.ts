@@ -15,9 +15,9 @@
  */
 
 import { CollectionReference } from "@google-cloud/firestore";
-import { OneTimeProductPurchase, SubscriptionPurchase, SkuType, Purchase } from "./types/purchases";
+import { OneTimeProductPurchase, SubscriptionPurchase, SkuType, Purchase, SubscriptionPurchaseV2 } from "./types/purchases";
 import { PurchaseQueryError, PurchaseUpdateError } from "./types/errors";
-import { OneTimeProductPurchaseImpl, mergePurchaseWithFirestorePurchaseRecord, SubscriptionPurchaseImpl } from "./internal/purchases_impl";
+import { OneTimeProductPurchaseImpl, mergePurchaseWithFirestorePurchaseRecord, SubscriptionPurchaseImpl, SubscriptionPurchaseImplV2 } from "./internal/purchases_impl";
 import { DeveloperNotification, NotificationType } from "./types/notifications";
 
 const REPLACED_PURCHASE_USERID_PLACEHOLDER = 'invalid';
@@ -91,8 +91,8 @@ export default class PurchaseManager {
    * then merge it with purchase ownership info stored in the library's managed Firestore database,
    * then returns the merge information as a SubscriptionPurchase to its caller.
    */
-  querySubscriptionPurchase(packageName: string, sku: string, purchaseToken: string): Promise<SubscriptionPurchase> {
-    return this.querySubscriptionPurchaseWithTrigger(packageName, sku, purchaseToken);
+  querySubscriptionPurchase(packageName: string, sku: string, purchaseToken: string): Promise<SubscriptionPurchaseV2> {
+    return this.querySubscriptionPurchaseWithTriggerV2(packageName, sku, purchaseToken);
   }
 
   /*
@@ -161,6 +161,70 @@ export default class PurchaseManager {
   }
 
   /*
+   * Actual private information of querySubscriptionPurchase(packageName, sku, purchaseToken)
+   * It's expanded to support storing extra information only available via Realtime Developer Notification,
+   * such as latest notification type.
+   *  - triggerNotificationType is only neccessary if the purchase query action is triggered by a Realtime Developer notification
+   */
+  private async querySubscriptionPurchaseWithTriggerV2(packageName: string, sku: string, purchaseToken: string, triggerNotificationType?: NotificationType): Promise<SubscriptionPurchaseV2> {
+    // STEP 1. Query Play Developer API to verify the purchase token
+    const apiResponseV2 = await new Promise((resolve, reject) => {
+      this.playDeveloperApiClient.purchases.subscriptionsv2.get({
+        packageName: packageName,
+        token: purchaseToken
+      }, (err, result) => {
+        if (err) {
+          reject(this.convertPlayAPIErrorToLibraryError(err));
+        } else {
+          resolve(result.data);
+        }
+      })
+    });
+
+    try {
+      // STEP 2. Look up purchase records from Firestore which matches this purchase token
+      const purchaseRecordDoc = await this.purchasesDbRef.doc(purchaseToken).get();
+
+      // Generate SubscriptionPurchase object from Firestore response
+      const now = Date.now();
+      const subscriptionPurchase = SubscriptionPurchaseImplV2.fromApiResponse(apiResponseV2, packageName, purchaseToken, sku, now);
+
+      // Store notificationType to database if queryPurchase was triggered by a realtime developer notification
+      if (triggerNotificationType !== undefined) {
+        subscriptionPurchase.latestNotificationType = triggerNotificationType;
+      }
+
+      // Convert subscriptionPurchase object to a format that to be stored in Firestore
+      const firestoreObject = subscriptionPurchase.toFirestoreObject();
+
+      if (purchaseRecordDoc.exists) {
+        // STEP 3a. We has this purchase cached in Firstore. Update our cache with the newly received response from Google Play Developer API
+        await purchaseRecordDoc.ref.update(firestoreObject);
+
+        // STEP 4a. Merge other fields of our purchase record in Firestore (such as userId) with our SubscriptionPurchase object and return to caller.
+        mergePurchaseWithFirestorePurchaseRecord(subscriptionPurchase, purchaseRecordDoc.data());
+        return subscriptionPurchase;
+      } else {
+        // STEP 3b. This is a brand-new subscription purchase. Just save the purchase record to Firestore
+        await purchaseRecordDoc.ref.set(firestoreObject);
+
+        if (subscriptionPurchase.linkedPurchaseToken) {
+          // STEP 4b. This is a subscription purchase that replaced other subscriptions in the past. Let's disable the purchases that it has replaced.
+          await this.disableReplacedSubscriptionV2(packageName, sku, subscriptionPurchase.linkedPurchaseToken);
+        }
+
+        // STEP 5. This is a brand-new subscription purchase. Just save the purchase record to Firestore and return an SubscriptionPurchase object with userId = null.
+        return subscriptionPurchase;
+      }
+    } catch (err) {
+      // Some unexpected error has occured while interacting with Firestore.
+      const libraryError = new Error(err.message);
+      libraryError.name = PurchaseQueryError.OTHER_ERROR;
+      throw libraryError;
+    }
+  }
+
+  /*
    * There are situations that a subscription is replaced by another subscription.
    * For example, an user signs up for a subscription (tokenA), cancel its and re-signups (tokenB)
    * We must disable the subscription linked to tokenA because it has been replaced by tokenB.
@@ -192,8 +256,8 @@ export default class PurchaseManager {
           token: purchaseToken
         }, async (err, result) => {
           if (err) {
-            console.warn('Error fetching purchase data from Play Developer API to backfilled missing purchase record in Firestore. ', err.message);
-            // We only log an warning to console log as there is chance that backfilling is impossible.
+            console.warn('Error fetching purchase data from Play Developer API to backfill missing purchase record in Firestore. ', err.message);
+            // We only log a warning to console log as there is chance that backfilling is impossible.
             // For example: after a subscription upgrade, the new token has linkedPurchaseToken to be the token before upgrade.
             // We can't tell the sku of the purchase before upgrade from the old token itself, so we can't query Play Developer API
             // to backfill our cache.
@@ -216,6 +280,65 @@ export default class PurchaseManager {
         // STEP 3. If this purchase has also replaced another purchase, repeating from STEP 1 with the older token
         if (subscriptionPurchase.linkedPurchaseToken) {
           await this.disableReplacedSubscription(packageName, sku, subscriptionPurchase.linkedPurchaseToken);
+        }
+      }
+    }
+  }
+
+  /*
+   * There are situations that a subscription is replaced by another subscription.
+   * For example, an user signs up for a subscription (tokenA), cancel its and re-signups (tokenB)
+   * We must disable the subscription linked to tokenA because it has been replaced by tokenB.
+   * If failed to do so, there's chance that a malicious user can have a single purchase registered to multiple user accounts.
+   *
+   * This method is used to disable a replaced subscription. It's not intended to be used from outside of the library.
+   */
+  private async disableReplacedSubscriptionV2(packageName: string, sku: string, purchaseToken: string): Promise<void> {
+    console.log('Disabling purchase token = ', purchaseToken);
+    // STEP 1: Lookup the purchase record in Firestore
+    const purchaseRecordDoc = await this.purchasesDbRef.doc(purchaseToken).get();
+
+    if (purchaseRecordDoc.exists) {
+      // Purchase record found in Firestore. Check if it has been disabled.
+      if (purchaseRecordDoc.data().replacedByAnotherPurchase) {
+        // The old purchase has been. We don't need to take further action
+        return;
+      } else {
+        // STEP 2a: Old purchase found in cache, so we disable it
+        await purchaseRecordDoc.ref.update({ replacedByAnotherPurchase: true, userId: REPLACED_PURCHASE_USERID_PLACEHOLDER });
+        return;
+      }
+    } else {
+      // Purchase record not found in Firestore. We'll try to fetch purchase detail from Play Developer API to backfill the missing cache
+      const apiResponseV2 = await new Promise((resolve, reject) => {
+        this.playDeveloperApiClient.purchases.subscriptionsV2.get({
+          packageName: packageName,
+          subscriptionId: sku,
+          token: purchaseToken
+        }, async (err, result) => {
+          if (err) {
+            console.warn('Error fetching purchase data from Play Developer API to backfilled missing purchase record in Firestore. ', err.message);
+            // We only log a warning to console log as there is chance that backfilling is impossible.
+            // For example: after a subscription upgrade, the new token has linkedPurchaseToken to be the token before upgrade.
+            resolve(null);
+          } else {
+            resolve(result.data);
+          }
+        })
+      })
+
+      if (apiResponseV2) {
+        // STEP 2b. Parse the response from Google Play Developer API and store the purchase detail
+        const now = Date.now();
+        const subscriptionPurchase = SubscriptionPurchaseImplV2.fromApiResponse(apiResponseV2, packageName, purchaseToken, sku, now);
+        subscriptionPurchase.replacedByAnotherPurchase = true; // Mark the purchase as already being replaced by other purchase.
+        subscriptionPurchase.userId = REPLACED_PURCHASE_USERID_PLACEHOLDER;
+        const firestoreObject = subscriptionPurchase.toFirestoreObject();
+        await purchaseRecordDoc.ref.set(firestoreObject);
+
+        // STEP 3. If this purchase has also replaced another purchase, repeating from STEP 1 with the older token
+        if (subscriptionPurchase.linkedPurchaseToken) {
+          await this.disableReplacedSubscriptionV2(packageName, sku, subscriptionPurchase.linkedPurchaseToken);
         }
       }
     }
@@ -306,7 +429,7 @@ export default class PurchaseManager {
     }
   }
 
-  async processDeveloperNotification(packageName: string, notification: DeveloperNotification): Promise<SubscriptionPurchase | null> {
+  async processDeveloperNotification(packageName: string, notification: DeveloperNotification): Promise<SubscriptionPurchaseV2 | null> {
     if (notification.testNotification) {
       console.log('Received a test Realtime Developer Notification. ', notification.testNotification);
       return null;
@@ -317,7 +440,7 @@ export default class PurchaseManager {
     if (subscriptionNotification.notificationType !== NotificationType.SUBSCRIPTION_PURCHASED) {
       // We can safely ignoreSUBSCRIPTION_PURCHASED because with new subscription, our Android app will send the same token to server for verification
       // For other type of notification, we query Play Developer API to update our purchase record cache in Firestore
-      return await this.querySubscriptionPurchaseWithTrigger(packageName,
+      return await this.querySubscriptionPurchaseWithTriggerV2(packageName,
         subscriptionNotification.subscriptionId,
         subscriptionNotification.purchaseToken,
         subscriptionNotification.notificationType

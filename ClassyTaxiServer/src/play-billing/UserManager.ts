@@ -16,8 +16,8 @@
 
 import { CollectionReference } from "@google-cloud/firestore";
 import PurchaseManager from "./PurchasesManager";
-import { SubscriptionPurchase, SkuType } from "./types/purchases";
-import { GOOGLE_PLAY_FORM_OF_PAYMENT, SubscriptionPurchaseImpl } from "./internal/purchases_impl";
+import { SkuType, SubscriptionPurchaseV2 } from "./types/purchases";
+import { GOOGLE_PLAY_FORM_OF_PAYMENT, SubscriptionPurchaseImplV2} from "./internal/purchases_impl";
 import { PurchaseQueryError } from "./types/errors";
 
 /*
@@ -34,8 +34,8 @@ export default class UserManager {
    * Query subscriptions registered to a particular user, that are either active or in account hold.
    * Note: Other subscriptions which don't meet the above criteria still exists in Firestore purchase records, but not accessible from outside of the library.
    */
-  async queryCurrentSubscriptions(userId: string, sku?: string, packageName?: string): Promise<Array<SubscriptionPurchase>> {
-    const purchaseList = new Array<SubscriptionPurchase>();
+  async queryCurrentSubscriptions(userId: string, sku?: string, packageName?: string): Promise<Array<SubscriptionPurchaseV2>> {
+    const purchaseList = new Array<SubscriptionPurchaseV2>();
 
     try {
       // Create query to fetch possibly active subscriptions from Firestore
@@ -58,7 +58,7 @@ export default class UserManager {
 
       // Loop through these subscriptions and filter those that are indeed active
       for (const purchaseRecordSnapshot of queryResult.docs) {
-        let purchase: SubscriptionPurchase = SubscriptionPurchaseImpl.fromFirestoreObject(purchaseRecordSnapshot.data())
+        let purchase: SubscriptionPurchaseV2 = SubscriptionPurchaseImplV2.fromFirestoreObject(purchaseRecordSnapshot.data())
 
         if (!purchase.isEntitlementActive() && !purchase.isAccountHold() && !purchase.isPaused()) {
           // If a subscription purchase record in Firestore indicates says that it has expired,
