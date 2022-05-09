@@ -14,276 +14,310 @@
  * limitations under the License.
  */
 
-import * as firebase from 'firebase-admin'
-import * as functions from 'firebase-functions';
-import { SkuType, PurchaseUpdateError, DeveloperNotification, NotificationType } from "../../play-billing";
-import { playBilling, verifyAuthentication, PACKAGE_NAME, instanceIdManager, sendHttpsError, verifyFirebaseAuthIdToken, logAndThrowHttpsError } from '../shared'
-import { SubscriptionStatus } from '../../model/SubscriptionStatus';
+ import * as firebase from 'firebase-admin'
+ import * as functions from 'firebase-functions';
+ import { ProductType, PurchaseUpdateError, DeveloperNotification, NotificationType } from "../../play-billing";
+ import { playBilling, verifyAuthentication, PACKAGE_NAME, instanceIdManager, sendHttpsError, verifyFirebaseAuthIdToken, logAndThrowHttpsError } from '../shared'
+ import { SubscriptionStatus } from '../../model/SubscriptionStatus';
 
-/* This file contains implementation of functions related to linking subscription purchase with user account
- */
+ /* This file contains implementation of functions related to linking subscription purchase with user account
+  */
 
-/* Register a subscription purchased in Android app via Google Play Billing to an user.
- * It only works with brand-new subscription purchases, which have not been registered to other users before
- */
-export const subscription_register = functions.https.onCall(async (data, context) => {
-  verifyAuthentication(context);
+ /* Register a subscription purchased in Android app via Google Play Billing to an user.
+  * It only works with brand-new subscription purchases, which have not been registered to other users before
+  */
+ export const subscription_register = functions.https.onCall(async (data, context) => {
+   verifyAuthentication(context);
 
-  const sku = data.sku;
-  const token = data.token;
+   const product = data.product;
+   const token = data.token;
 
-  try {
-    await playBilling.purchases().registerToUserAccount(
-      PACKAGE_NAME,
-      sku,
-      token,
-      SkuType.SUBS,
-      context.auth.uid
-    );
-  } catch (err) {
-    console.error(err.message);
-    switch (err.name) {
-      case PurchaseUpdateError.CONFLICT: {
-        throw new functions.https.HttpsError('already-exists', 'Purchase token already registered to another user');
-      }
-      case PurchaseUpdateError.INVALID_TOKEN: {
-        throw new functions.https.HttpsError('not-found', 'Invalid token');
-      }
-      default: {
-        throw new functions.https.HttpsError('internal', 'Internal server error');
-      }
-    }
-  }
+   try {
+     await playBilling.purchases().registerToUserAccount(
+       PACKAGE_NAME,
+       product,
+       token,
+       ProductType.SUBS,
+       context.auth.uid
+     );
+   } catch (err) {
+     console.error(err.message);
+     switch (err.name) {
+       case PurchaseUpdateError.CONFLICT: {
+         throw new functions.https.HttpsError('already-exists', 'Purchase token already registered to another user');
+       }
+       case PurchaseUpdateError.INVALID_TOKEN: {
+         throw new functions.https.HttpsError('not-found', 'Invalid token');
+       }
+       default: {
+         throw new functions.https.HttpsError('internal', 'Internal server error');
+       }
+     }
+   }
 
-  return getSubscriptionsResponseObject(context.auth.uid);
-});
+   return getSubscriptionsResponseObject(context.auth.uid);
+ });
 
-/* HTTPS request that registers a subscription purchased
- * in Android app via Google Play Billing to an user.
- *
- * It only works with brand-new subscription purchases,
- * which have not been registered to other users before.
- *
- * @param {Request} request
- * @param {Response} response
- */
-export const subscription_register_v2 = functions.https.onRequest(async (request, response) => {
-  return verifyFirebaseAuthIdToken(request, response)
-    .then(async (decodedToken) => {
-      const sku = request.body.sku;
-      const uid = decodedToken.uid;
-      const token = request.body.purchaseToken;
+ /* HTTPS request that registers a subscription purchased
+  * in Android app via Google Play Billing to an user.
+  *
+  * It only works with brand-new subscription purchases,
+  * which have not been registered to other users before.
+  *
+  * @param {Request} request
+  * @param {Response} response
+  */
+ export const subscription_register_v2 = functions.https.onRequest(async (request, response) => {
+   return verifyFirebaseAuthIdToken(request, response)
+     .then(async (decodedToken) => {
+       const product = request.body.product;
+       const uid = decodedToken.uid;
+       const token = request.body.purchaseToken;
 
-      if (!token || !uid || !sku) {
-        throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters!');
-      }
-      
-      try {
-        await playBilling.purchases().registerToUserAccount(
-          PACKAGE_NAME,
-          sku,
-          token,
-          SkuType.SUBS,
-          uid
-        );
-      } catch (err) {
-        switch (err.name) {
-          case PurchaseUpdateError.CONFLICT: {
-            logAndThrowHttpsError('already-exists', err.message);
-          }
-          case PurchaseUpdateError.INVALID_TOKEN: {
-            logAndThrowHttpsError('not-found', err.message);
-          }
-          default: {
-            logAndThrowHttpsError('internal', err.message);
-          }
-        }
-      };
+       if (!token || !uid || !product) {
+         throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters!');
+       }
 
-      const data = await getSubscriptionsResponseObject(uid);
-      response.send(data);
-    }).catch((error: functions.https.HttpsError) => {
-      sendHttpsError(error, response);
-    });
-});
+       try {
+         await playBilling.purchases().registerToUserAccount(
+           PACKAGE_NAME,
+           product,
+           token,
+           ProductType.SUBS,
+           uid
+         );
+       } catch (err) {
+         switch (err.name) {
+           case PurchaseUpdateError.CONFLICT: {
+             logAndThrowHttpsError('already-exists', err.message);
+           }
+           case PurchaseUpdateError.INVALID_TOKEN: {
+             logAndThrowHttpsError('not-found', err.message);
+           }
+           default: {
+             logAndThrowHttpsError('internal', err.message);
+           }
+         }
+       };
 
-/* Register a subscription purchased in Android app via Google Play Billing to an user.
- * It only works with all active subscriptions, no matter if it's registered or not.
- */
-export const subscription_transfer = functions.https.onCall(async (data, context) => {
-  verifyAuthentication(context);
+       const data = await getSubscriptionsResponseObject(uid);
+       response.send(data);
+     }).catch((error: functions.https.HttpsError) => {
+       sendHttpsError(error, response);
+     });
+ });
 
-  const sku = data.sku;
-  const token = data.token;
+ /**
+  * HTTPS request that acknowledges a subscription purchased in Android app via
+  * Google Play Billing to an user.
+  *
+  * @param {Request} request
+  * @param {Response} response
+  */
+ export const acknowledge_purchase = functions.https.onRequest(async (request, response) => {
+   console.log('acknowledge_purchase called server side');
+   return verifyFirebaseAuthIdToken(request, response)
+   .then(async (decodedToken) => {
+     const product = request.body.product;
+     const uid = decodedToken.uid;
+     const token = request.body.purchaseToken;
 
-  try {
-    await playBilling.purchases().transferToUserAccount(
-      PACKAGE_NAME,
-      sku,
-      token,
-      SkuType.SUBS,
-      context.auth.uid
-    );
-  } catch (err) {
-    console.error(err.message);
-    switch (err.name) {
-      case PurchaseUpdateError.INVALID_TOKEN: {
-        throw new functions.https.HttpsError('not-found', 'Invalid token');
-      }
-      default: {
-        throw new functions.https.HttpsError('internal', 'Internal server error');
-      }
-    }
-  }
+     if (!token || !uid) {
+       throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters!');
+     }
+     try {
+       await playBilling.purchases().acknowledgePurchase(
+         PACKAGE_NAME,
+         product,
+         token
+       );
+     } catch (err) {
+       console.log('There was an error', err.message);
+     }
 
-  return getSubscriptionsResponseObject(context.auth.uid);
-});
+     const data = await getSubscriptionsResponseObject(uid);
+     console.log('data back from Firestore: ', data);
+     response.send(data);
+   })
+ })
 
-/* HTTPS request that registers a subscription purchased
- * in Android app via Google Play Billing to an user.
- *
- * It only works with all active subscription purchases,
- * no matter if it's registered or not.
- *
- * @param {Request} request
- * @param {Response} response
- */
-export const subscription_transfer_v2 = functions.https.onRequest(async (request, response) => {
-  return verifyFirebaseAuthIdToken(request, response)
-    .then(async (decodedToken) => {
-      const sku = request.body.sku;
-      const uid = decodedToken.uid;
-      const token = request.body.purchaseToken;
+ /* Register a subscription purchased in Android app via Google Play Billing to an user.
+  * It only works with all active subscriptions, no matter if it's registered or not.
+  */
+ export const subscription_transfer = functions.https.onCall(async (data, context) => {
+   verifyAuthentication(context);
 
-      try {
-        await playBilling.purchases().transferToUserAccount(
-          PACKAGE_NAME,
-          sku,
-          token,
-          SkuType.SUBS,
-          uid
-        );
-      } catch (err) {
-        switch (err.name) {
-          case PurchaseUpdateError.INVALID_TOKEN: {
-            logAndThrowHttpsError('not-found', err.message);
-          }
-          default: {
-            logAndThrowHttpsError('internal', err.message);
-          }
-        }
-      }
+   const product = data.product;
+   const token = data.token;
 
-      const data = await getSubscriptionsResponseObject(uid);
-      response.send(data);
-    }).catch((error: functions.https.HttpsError) => {
-      sendHttpsError(error, response);
-    });
-});
+   try {
+     await playBilling.purchases().transferToUserAccount(
+       PACKAGE_NAME,
+       product,
+       token,
+       ProductType.SUBS,
+       context.auth.uid
+     );
+   } catch (err) {
+     console.error(err.message);
+     switch (err.name) {
+       case PurchaseUpdateError.INVALID_TOKEN: {
+         throw new functions.https.HttpsError('not-found', 'Invalid token');
+       }
+       default: {
+         throw new functions.https.HttpsError('internal', 'Internal server error');
+       }
+     }
+   }
 
-/* Returns a list of active subscriptions and those under Account Hold.
- * Subscriptions in Account Hold can still be recovered,
- * so it's useful that client app know about them and show an appropriate message to the user.
- */
-export const subscription_status = functions.https.onCall((data, context) => {
-  verifyAuthentication(context);
+   return getSubscriptionsResponseObject(context.auth.uid);
+ });
 
-  return getSubscriptionsResponseObject(context.auth.uid)
-    .catch(err => {
-      console.error(err.message);
-      throw new functions.https.HttpsError('internal', 'Internal server error');
-    });
-});
+ /* HTTPS request that registers a subscription purchased
+  * in Android app via Google Play Billing to an user.
+  *
+  * It only works with all active subscription purchases,
+  * no matter if it's registered or not.
+  *
+  * @param {Request} request
+  * @param {Response} response
+  */
+ export const subscription_transfer_v2 = functions.https.onRequest(async (request, response) => {
+   return verifyFirebaseAuthIdToken(request, response)
+     .then(async (decodedToken) => {
+       const product = request.body.product;
+       const uid = decodedToken.uid;
+       const token = request.body.purchaseToken;
 
-/* HTTPS request that returns a list of active subscriptions
- * and those under Account Hold.
- *
- * Subscriptions in Account Hold can still be recovered,
- * so it's useful that client app know about them and show
- * an appropriate message to the user.
- *
- * @param {Request} request
- * @param {Response} response
- */
-export const subscription_status_v2 = functions.https.onRequest(async (request, response) => {
-  return verifyFirebaseAuthIdToken(request, response)
-    .then(async decodedToken => {
-      const uid = decodedToken.uid;
-      const responseData = await getSubscriptionsResponseObject(uid)
-      response.send(responseData);
-    }).catch((error: functions.https.HttpsError) => {
-      sendHttpsError(error, response);
-    });
-});
+       try {
+         await playBilling.purchases().transferToUserAccount(
+           PACKAGE_NAME,
+           product,
+           token,
+           ProductType.SUBS,
+           uid
+         );
+       } catch (err) {
+         switch (err.name) {
+           case PurchaseUpdateError.INVALID_TOKEN: {
+             logAndThrowHttpsError('not-found', err.message);
+           }
+           default: {
+             logAndThrowHttpsError('internal', err.message);
+           }
+         }
+       }
 
-/* PubSub listener which handle Realtime Developer Notifications received from Google Play.
- * See https://developer.android.com/google/play/billing/realtime_developer_notifications.html
- */
-export const realtime_notification_listener = functions.pubsub.topic('play-subs').onPublish(async (data, context) => {
-  try {
-    // Process the Realtime Developer notification
-    const developerNotification = <DeveloperNotification>data.json;
-    console.log('Received realtime notification: ', developerNotification);
-    const purchase = await playBilling.purchases().processDeveloperNotification(PACKAGE_NAME, developerNotification);
+       const data = await getSubscriptionsResponseObject(uid);
+       response.send(data);
+     }).catch((error: functions.https.HttpsError) => {
+       sendHttpsError(error, response);
+     });
+ });
 
-    // Send the updated SubscriptionStatus to the client app instances of the user who own the purchase
-    if (purchase && purchase.userId) {
-      await sendSubscriptionStatusUpdateToClient(purchase.userId,
-        developerNotification.subscriptionNotification.notificationType)
-    }
-  } catch (error) {
-    console.error(error);
-  }
-})
+ /* Returns a list of active subscriptions and those under Account Hold.
+  * Subscriptions in Account Hold can still be recovered,
+  * so it's useful that client app know about them and show an appropriate message to the user.
+  */
+ export const subscription_status = functions.https.onCall((data, context) => {
+   verifyAuthentication(context);
 
-// Util method to get a list of subscriptions belong to an user, in the format that can be returned to client app
-// It also handles library internal error and convert it to an HTTP error to return to client.
-async function getSubscriptionsResponseObject(userId: string): Promise<Object> {
-  try {
-    // Fetch purchase list from purchase records
-    const purchaseList = await playBilling.users().queryCurrentSubscriptions(userId);
-    // Convert Purchase objects to SubscriptionStatus objects
-    const subscriptionStatusList = purchaseList.map(subscriptionPurchase => new SubscriptionStatus(subscriptionPurchase));
-    // Return them in a format that is expected by client app
-    return { subscriptions: subscriptionStatusList }
-  } catch (err) {
-    console.error(err.message);
-    throw new functions.https.HttpsError('internal', 'Internal server error');
-  }
-}
+   return getSubscriptionsResponseObject(context.auth.uid)
+     .catch(err => {
+       console.error(err.message);
+       throw new functions.https.HttpsError('internal', 'Internal server error');
+     });
+ });
 
-// Util method to send updated list of SubscriptionPurchase to client app via FCM
-async function sendSubscriptionStatusUpdateToClient(userId: string, notificationType: NotificationType): Promise<void> {
-  // Fetch updated subscription list of the user
-  const subscriptionResponseObject = await getSubscriptionsResponseObject(userId);
+ /* HTTPS request that returns a list of active subscriptions
+  * and those under Account Hold.
+  *
+  * Subscriptions in Account Hold can still be recovered,
+  * so it's useful that client app know about them and show
+  * an appropriate message to the user.
+  *
+  * @param {Request} request
+  * @param {Response} response
+  */
+ export const subscription_status_v2 = functions.https.onRequest(async (request, response) => {
+   return verifyFirebaseAuthIdToken(request, response)
+     .then(async decodedToken => {
+       const uid = decodedToken.uid;
+       const responseData = await getSubscriptionsResponseObject(uid)
+       response.send(responseData);
+     }).catch((error: functions.https.HttpsError) => {
+       sendHttpsError(error, response);
+     });
+ });
 
-  // Get token list of devices that the user owns
-  const tokens = await instanceIdManager.getInstanceIds(userId);
+ /* PubSub listener which handle Realtime Developer Notifications received from Google Play.
+  * See https://developer.android.com/google/play/billing/realtime_developer_notifications.html
+  */
+ export const realtime_notification_listener = functions.pubsub.topic('play-subs').onPublish(async (data, context) => {
+   try {
+     // Process the Realtime Developer notification
+     const developerNotification = <DeveloperNotification>data.json;
+     console.log('Received realtime notification: ', developerNotification);
+     const purchase = await playBilling.purchases().processDeveloperNotification(PACKAGE_NAME, developerNotification);
 
-  // Compose the FCM data message to send to the devices
-  const message = {
-    data: {
-      currentStatus: JSON.stringify(subscriptionResponseObject),
-      notificationType: notificationType.toString()
-    }
-  }
+     // Send the updated SubscriptionStatus to the client app instances of the user who own the purchase
+     if (purchase && purchase.userId) {
+       await sendSubscriptionStatusUpdateToClient(purchase.userId,
+         developerNotification.subscriptionNotification.notificationType)
+     }
+   } catch (error) {
+     console.error(error);
+   }
+ })
 
-  // Send message to devices using FCM
-  const messageResponse = await firebase.messaging().sendToDevice(tokens, message);
-  console.log('Sent subscription update to user devices. UserId =', userId,
-    ' messageResponse = ', messageResponse);
+ // Util method to get a list of subscriptions belong to an user, in the format that can be returned to client app
+ // It also handles library internal error and convert it to an HTTP error to return to client.
+ async function getSubscriptionsResponseObject(userId: string): Promise<Object> {
+   try {
+     // Fetch purchase list from purchase records
+     const purchaseList = await playBilling.users().queryCurrentSubscriptions(userId);
+     // Convert Purchase objects to SubscriptionStatus objects
+     const subscriptionStatusList = purchaseList.map(subscriptionPurchase => new SubscriptionStatus(subscriptionPurchase));
+     // Return them in a format that is expected by client app
+     return { subscriptions: subscriptionStatusList }
+   } catch (err) {
+     console.error(err.message);
+     throw new functions.https.HttpsError('internal', 'Internal server error');
+   }
+ }
 
-  const tokensToRemove = [];
-  messageResponse.results.forEach((result, index) => {
-    const error = result.error;
-    if (error) {
-      // There's some issue sending message to some tokens
-      console.error('Failure sending notification to', tokens[index], error);
-      // Cleanup the tokens who are not registered anymore.
-      if (error.code === 'messaging/invalid-registration-token' || error.code === 'messaging/registration-token-not-registered') {
-        tokensToRemove.push(instanceIdManager.unregisterInstanceId(userId, tokens[index]));
-      }
-    }
-  })
-  await Promise.all(tokensToRemove);
-}
+ // Util method to send updated list of SubscriptionPurchase to client app via FCM
+ async function sendSubscriptionStatusUpdateToClient(userId: string, notificationType: NotificationType): Promise<void> {
+   // Fetch updated subscription list of the user
+   const subscriptionResponseObject = await getSubscriptionsResponseObject(userId);
+
+   // Get token list of devices that the user owns
+   const tokens = await instanceIdManager.getInstanceIds(userId);
+
+   // Compose the FCM data message to send to the devices
+   const message = {
+     data: {
+       currentStatus: JSON.stringify(subscriptionResponseObject),
+       notificationType: notificationType.toString()
+     }
+   }
+
+   // Send message to devices using FCM
+   const messageResponse = await firebase.messaging().sendToDevice(tokens, message);
+   console.log('Sent subscription update to user devices. UserId =', userId,
+     ' messageResponse = ', messageResponse);
+
+   const tokensToRemove = [];
+   messageResponse.results.forEach((result, index) => {
+     const error = result.error;
+     if (error) {
+       // There's some issue sending message to some tokens
+       console.error('Failure sending notification to', tokens[index], error);
+       // Cleanup the tokens who are not registered anymore.
+       if (error.code === 'messaging/invalid-registration-token' || error.code === 'messaging/registration-token-not-registered') {
+         tokensToRemove.push(instanceIdManager.unregisterInstanceId(userId, tokens[index]));
+       }
+     }
+   })
+   await Promise.all(tokensToRemove);
+ }

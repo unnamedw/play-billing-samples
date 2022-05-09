@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * This is a reusable component (the library) that directly manage purchases made via Google Play Billing.
  * It does several things:
  *  - Manage relation between purchases and users (i.e. which user owns which purchase)
  *  - Manage the lifecycle of recurring subscription purchases (renewal, expiry, grace period, account hold etc.)
- * 
+ *
  * These types are exposed to be used by the library's consumers.
  * One should not use types that are not included below, as it may have unexpected effects.
- */ 
+ */
 
 export { default as PlayBilling } from "./PlayBilling";
-export { Purchase, OneTimeProductPurchase, SubscriptionPurchase, SkuType } from "./types/purchases";
+export { Purchase, OneTimeProductPurchase, SubscriptionPurchase, SubscriptionPurchaseV2, ProductType } from "./types/purchases";
 export { PurchaseQueryError, PurchaseUpdateError } from "./types/errors";
 export { DeveloperNotification, NotificationType } from "./types/notifications";
