@@ -21,12 +21,12 @@ import com.example.subscriptions.Constants
 import com.example.subscriptions.data.SubscriptionStatus
 
 /**
- * Return subscription for the provided SKU, if it exists.
+ * Return subscription for the provided Product, if it exists.
  */
-fun subscriptionForSku(subscriptions: List<SubscriptionStatus>?, sku: String): SubscriptionStatus? {
+fun subscriptionForProduct(subscriptions: List<SubscriptionStatus>?, product: String): SubscriptionStatus? {
     subscriptions?.let {
         for (subscription in it) {
-            if (subscription.sku == sku) {
+            if (subscription.product == product) {
                 return subscription
             }
         }
@@ -36,12 +36,12 @@ fun subscriptionForSku(subscriptions: List<SubscriptionStatus>?, sku: String): S
 }
 
 /**
- * Return purchase for the provided SKU, if it exists.
+ * Return purchase for the provided Product, if it exists.
  */
-fun purchaseForSku(purchases: List<Purchase>?, sku: String): Purchase? {
+fun purchaseForProduct(purchases: List<Purchase>?, product: String): Purchase? {
     purchases?.let {
         for (purchase in it) {
-            if (purchase.skus[0] == sku) {
+            if (purchase.products[0] == product) {
                 return purchase
             }
         }
@@ -49,7 +49,7 @@ fun purchaseForSku(purchases: List<Purchase>?, sku: String): Purchase? {
     return null
 }
 
-/*
+/**
  * This will return true if the Google Play Billing APIs have a record for the subscription.
  * This will not always match the server's record of the subscription for this app user.
  *
@@ -63,8 +63,8 @@ fun purchaseForSku(purchases: List<Purchase>?, sku: String): Purchase? {
  * even if the Google account on this device has purchased the subscription.
  * In this example, the method will return true.
  */
-fun deviceHasGooglePlaySubscription(purchases: List<Purchase>?, sku: String) =
-    purchaseForSku(purchases, sku) != null
+fun deviceHasGooglePlaySubscription(purchases: List<Purchase>?, product: String) =
+    purchaseForProduct(purchases, product) != null
 
 /**
  * This will return true if the server has a record for the subscription.
@@ -88,8 +88,8 @@ fun deviceHasGooglePlaySubscription(purchases: List<Purchase>?, sku: String) =
  * In this example, the method will return true. This is the same as the result from
  * [deviceHasGooglePlaySubscription].
  */
-fun serverHasSubscription(subscriptions: List<SubscriptionStatus>?, sku: String) =
-    subscriptionForSku(subscriptions, sku) != null
+fun serverHasSubscription(subscriptions: List<SubscriptionStatus>?, product: String) =
+    subscriptionForProduct(subscriptions, product) != null
 
 /**
  * Returns true if the grace period option should be shown.
@@ -118,7 +118,7 @@ val SubscriptionStatus?.isBasicContent: Boolean
     get() =
         this != null &&
                 isEntitlementActive &&
-                Constants.BASIC_SKU == sku &&
+                Constants.BASIC_PRODUCT == product &&
                 !subAlreadyOwned
 
 /**
@@ -128,7 +128,7 @@ val SubscriptionStatus?.isBasicContent: Boolean
 fun isPremiumContent(subscription: SubscriptionStatus?) =
     subscription != null &&
             subscription.isEntitlementActive &&
-            Constants.PREMIUM_SKU == subscription.sku &&
+            Constants.PREMIUM_PRODUCT == subscription.product &&
             !subscription.subAlreadyOwned
 
 /**
@@ -140,7 +140,6 @@ fun isAccountHold(subscription: SubscriptionStatus?) =
             !subscription.isEntitlementActive &&
             subscription.isAccountHold &&
             !subscription.subAlreadyOwned
-
 /**
  * Returns true if account pause should be shown.
  */
@@ -150,14 +149,12 @@ fun isPaused(subscription: SubscriptionStatus?) =
             !subscription.isEntitlementActive &&
             subscription.isPaused &&
             !subscription.subAlreadyOwned
-
 /**
  * Returns true if the subscription is already owned and requires a transfer to this account.
  */
 // TODO need to be refactored like isBasicContent
 fun isTransferRequired(subscription: SubscriptionStatus?) =
     subscription != null && subscription.subAlreadyOwned
-
 /**
  * Returns true if the subscription is a prepraid.
  */
@@ -165,4 +162,3 @@ val SubscriptionStatus?.isPrepaid: Boolean
     get() =
         this != null &&
                 willRenew
-

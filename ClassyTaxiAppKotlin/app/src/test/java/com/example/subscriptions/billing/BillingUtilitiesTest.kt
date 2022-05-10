@@ -11,24 +11,24 @@ import org.junit.Test
 class BillingUtilitiesTest {
 
     @Test
-    fun subscriptionForSku_returnsSubscriptionForExistingSku() {
+    fun subscriptionForProduct_returnsSubscriptionForExistingProduct() {
         val subscriptionList = listOf(
-            SubscriptionStatus(sku = "basic_subscription"),
-            SubscriptionStatus(sku = "premium_subscription")
+            SubscriptionStatus(product = "basic_subscription"),
+            SubscriptionStatus(product = "premium_subscription")
         )
-        val sku = "basic_subscription"
-        val result = subscriptionForSku(subscriptionList, sku)
-        assertThat(sku, `is`(equalTo(result?.sku)))
+        val product = "basic_subscription"
+        val result = subscriptionForProduct(subscriptionList, product)
+        assertThat(product, `is`(equalTo(result?.product)))
     }
 
     @Test
-    fun subscriptionForSku_returnsNullForNonExistingSku() {
-        val noSkuSubscriptionList = listOf(
-            SubscriptionStatus(sku = "basic_subscription"),
-            SubscriptionStatus(sku = "premium_subscription")
+    fun subscriptionForProduct_returnsNullForNonExistingProduct() {
+        val noProductSubscriptionList = listOf(
+            SubscriptionStatus(product = "basic_subscription"),
+            SubscriptionStatus(product = "premium_subscription")
         )
-        val sku = "non_cheap_subscription"
-        val result = subscriptionForSku(noSkuSubscriptionList, sku)
+        val product = "non_cheap_subscription"
+        val result = subscriptionForProduct(noProductSubscriptionList, product)
         assertThat(result, `is`(nullValue()))
     }
 
@@ -62,7 +62,10 @@ class BillingUtilitiesTest {
             isGracePeriod = true
         )
         val result = isGracePeriod(alreadyOwnedSubscription)
-        assertThat("Grace period is not shown for already owned subscription", result, `is`(equalTo(false)))
+        assertThat(
+            "Grace period is not shown for already owned subscription",
+            result, `is`(equalTo(false))
+        )
     }
 
     @Test
@@ -73,14 +76,20 @@ class BillingUtilitiesTest {
             isGracePeriod = true
         )
         val result = isGracePeriod(entitlementInactiveSubscription)
-        assertThat("Grace period is not shown for inactive entitlement subscription", result, `is`(equalTo(false)))
+        assertThat(
+            "Grace period is not shown for inactive entitlement subscription",
+            result, `is`(equalTo(false))
+        )
     }
 
     @Test
     fun isGracePeriod_returnsFalseForNullSub() {
         val nullSubscription = null
         val result = isGracePeriod(nullSubscription)
-        assertThat("Grace period is not shown due to null subscription", result, `is`(equalTo(false)))
+        assertThat(
+            "Grace period is not shown due to null subscription",
+            result, `is`(equalTo(false))
+        )
     }
 
     @Test
@@ -91,7 +100,10 @@ class BillingUtilitiesTest {
             willRenew = false
         )
         val result = isSubscriptionRestore(willNotRenewSubscription)
-        assertThat("Restore option is shown for subscription that will not be renewed", result, `is`(equalTo(true)))
+        assertThat(
+            "Restore option is shown for subscription that will not be renewed",
+            result, `is`(equalTo(true))
+        )
     }
 
     @Test
@@ -102,64 +114,73 @@ class BillingUtilitiesTest {
             willRenew = true
         )
         val result = isSubscriptionRestore(willRenewSubscription)
-        assertThat("Restore option is not shown for subscription that will be renewed", result, `is`(equalTo(false)))
+        assertThat(
+            "Restore option is not shown for subscription that will be renewed",
+            result, `is`(equalTo(false))
+        )
     }
 
     @Test
     fun isSubscriptionRestore_returnsFalseForNullSub() {
         val nullSubscription = null
         val result = isSubscriptionRestore(nullSubscription)
-        assertThat("Subscription restore is not shown due to null subscription", result, `is`(equalTo(false)))
+        assertThat(
+            "Subscription restore is not shown due to null subscription",
+            result, `is`(equalTo(false))
+        )
     }
 
     @Test
-    fun isBasicContent_returnsTrueForBasicSku() {
-        val basicSkuSubscription = SubscriptionStatus(
+    fun isBasicContent_returnsTrueForBasicProduct() {
+        val basicProductSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
             isEntitlementActive = true,
-            sku = "basic_subscription"
+            product = "basic_subscription"
         )
-        val result = isBasicContent(basicSkuSubscription)
+        val result = basicProductSubscription.isBasicContent
         assertThat("Basic content is shown", result, `is`(equalTo(true)))
     }
 
     @Test
-    fun isBasicContent_returnsFalseForNonBasicSku() {
-        val nonBasicSkuSubscription = SubscriptionStatus(
+    fun isBasicContent_returnsFalseForNonBasicProduct() {
+        val nonBasicProductSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
             isEntitlementActive = true,
-            sku = "premium_subscription"
+            product = "premium_subscription"
         )
-        val result = isBasicContent(nonBasicSkuSubscription)
+        val result = nonBasicProductSubscription.isBasicContent
         assertThat("Basic content is not shown", result, `is`(equalTo(false)))
     }
 
     @Test
     fun isBasicContent_returnsFalseForNullSub() {
         val nullSubscription = null
-        val result = isBasicContent(nullSubscription)
-        assertThat("Basic content is not shown due to null subscription", result, `is`(equalTo(false)))
+        val result = nullSubscription.isBasicContent
+        assertThat(
+            "Basic content is not shown due to null subscription",
+            result, `is`(equalTo(false))
+        )
     }
 
     @Test
-    fun isPremiumContent_returnsTrueForPremiumSku() {
-        val premiumSkuSubscription = SubscriptionStatus(
+    fun isPremiumContent_returnsTrueForPremiumProduct() {
+        val premiumProductSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
             isEntitlementActive = true,
-            sku = "premium_subscription"
+            product = "premium_subscription"
         )
-        val result = isPremiumContent(premiumSkuSubscription)
+        val result = isPremiumContent(premiumProductSubscription)
         assertThat("Premium content is shown", result, `is`(equalTo(true)))
     }
 
     @Test
-    fun isPremiumContent_returnsFalseForNonPremiumSku() {
-        val nonPremiumSkuSubscription = SubscriptionStatus(
+    fun isPremiumContent_returnsFalseForNonPremiumProduct() {
+        val nonPremiumProductSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
             isEntitlementActive = true,
-            sku = "basic_subscription"
+            product = "basic_subscription"
         )
-        val result = isPremiumContent(nonPremiumSkuSubscription)
+        val result = isPremiumContent(nonPremiumProductSubscription)
         assertThat("Premium content is not shown", result, `is`(equalTo(false)))
     }
 
@@ -167,7 +188,10 @@ class BillingUtilitiesTest {
     fun isPremiumContent_returnsFalseForNullSub() {
         val nullSubscription = null
         val result = isPremiumContent(nullSubscription)
-        assertThat("Premium content is not shown due to null subscription", result, `is`(equalTo(false)))
+        assertThat(
+            "Premium content is not shown due to null subscription",
+            result, `is`(equalTo(false))
+        )
     }
 
     @Test
@@ -196,7 +220,10 @@ class BillingUtilitiesTest {
     fun isAccountHold_returnsFalseForNullSub() {
         val nullSubscription = null
         val result = isAccountHold(nullSubscription)
-        assertThat("Account hold is not shown due to null subscription", result, `is`(equalTo(false)))
+        assertThat(
+            "Account hold is not shown due to null subscription",
+            result, `is`(equalTo(false))
+        )
     }
 
     @Test
@@ -225,14 +252,20 @@ class BillingUtilitiesTest {
     fun isPaused_returnsFalseForNullSub() {
         val nullSubscription = null
         val result = isPaused(nullSubscription)
-        assertThat("Account paused is not shown due to null subscription", result, `is`(equalTo(false)))
+        assertThat(
+            "Account paused is not shown due to null subscription",
+            result, `is`(equalTo(false))
+        )
     }
 
     @Test
     fun isTransferRequired_returnsTrueForAlreadyOwnedSub() {
         val alreadyOwnedSubscription = SubscriptionStatus(subAlreadyOwned = true)
         val result = isTransferRequired(alreadyOwnedSubscription)
-        assertThat("Transfer is required due to sub being already owned", result, `is`(equalTo(true)))
+        assertThat(
+            "Transfer is required due to sub being already owned",
+            result, `is`(equalTo(true))
+        )
     }
 
     @Test
@@ -246,6 +279,9 @@ class BillingUtilitiesTest {
     fun isTransferRequired_returnsFalseForNullSub() {
         val nullSubscription = null
         val result = isTransferRequired(nullSubscription)
-        assertThat("Transfer is not required due null sub", result, `is`(equalTo(false)))
+        assertThat(
+            "Transfer is not required due null sub",
+            result, `is`(equalTo(false))
+        )
     }
 }

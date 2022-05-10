@@ -33,8 +33,9 @@ import com.firebase.ui.auth.AuthUI
  * TvMainActivity contains a TvMainFragment that leverages Leanback UI to build an optimized
  * Android TV experience for Classy Taxi.
  *
- * This Activity follows a nearly identical pattern to its sibling class MainActivity, subscribing to the same
- * ViewModels and providing similar business logic.
+ * This Activity follows a nearly identical pattern to its sibling class MainActivity,
+ * subscribing to the sameViewModels and providing similar business logic.
+ *
  */
 class TvMainActivity : FragmentActivity() {
 
@@ -71,10 +72,10 @@ class TvMainActivity : FragmentActivity() {
         }
 
         // Open the Play Store when this event is triggered.
-        billingViewModel.openPlayStoreSubscriptionsEvent.observe(this) { sku ->
+        billingViewModel.openPlayStoreSubscriptionsEvent.observe(this) { product ->
             Log.i(TAG, "Viewing subscriptions on the Google Play Store")
-            val url = sku?.let {
-                // If the SKU is specified, open the deeplink for this SKU on Google Play.
+            val url = product?.let {
+                // If the Product is specified, open the deeplink for this product on Google Play.
                 String.format(Constants.PLAY_STORE_SUBSCRIPTION_DEEPLINK_URL, it, packageName)
             } ?: Constants.PLAY_STORE_SUBSCRIPTION_URL // Or open the Google Play subscriptions URL.
             val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -101,15 +102,15 @@ class TvMainActivity : FragmentActivity() {
     }
 
     /**
-     * Register SKUs and purchase tokens with the server.
+     * Register Products and purchase tokens with the server.
      */
     private fun registerPurchases(purchaseList: List<Purchase>) {
         for (purchase in purchaseList) {
-            val sku = purchase.skus[0]
+            val product = purchase.products[0]
             val purchaseToken = purchase.purchaseToken
-            Log.d(TAG, "Register purchase with sku: $sku, token: $purchaseToken")
+            Log.d(TAG, "Register purchase with product: $product, token: $purchaseToken")
             subscriptionViewModel.registerSubscription(
-                sku = sku,
+                product = product,
                 purchaseToken = purchaseToken
             )
         }

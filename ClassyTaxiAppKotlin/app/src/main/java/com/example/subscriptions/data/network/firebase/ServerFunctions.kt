@@ -20,7 +20,6 @@ import com.example.subscriptions.data.ContentResource
 import com.example.subscriptions.data.SubscriptionStatus
 import com.example.subscriptions.data.network.retrofit.ServerFunctionsImpl
 import kotlinx.coroutines.flow.StateFlow
-import retrofit2.Response
 
 /**
  * Interface to perform the remote API calls.
@@ -65,12 +64,18 @@ interface ServerFunctions {
     /**
      * Register a subscription with the server and return results.
      */
-    suspend fun registerSubscription(sku: String, purchaseToken: String): List<SubscriptionStatus>
+    suspend fun registerSubscription(
+        product: String,
+        purchaseToken: String
+    ): List<SubscriptionStatus>
 
     /**
      * Transfer subscription to this account posts
      */
-    suspend fun transferSubscription(sku: String, purchaseToken: String): List<SubscriptionStatus>
+    suspend fun transferSubscription(
+        product: String,
+        purchaseToken: String
+    ): List<SubscriptionStatus>
 
     /**
      * Register Instance ID when the user signs in or the token is refreshed.
@@ -82,13 +87,21 @@ interface ServerFunctions {
      */
     suspend fun unregisterInstanceId(instanceId: String)
 
+    /**
+     * Send a purchase object to server for acknowledgement.
+     */
+    suspend fun acknowledgeSubscription(
+        product: String,
+        purchaseToken: String
+    ): List<SubscriptionStatus>
+
     companion object {
         @Volatile
         private var INSTANCE: ServerFunctions? = null
 
         fun getInstance(): ServerFunctions =
-                INSTANCE ?: synchronized(this) {
-                    INSTANCE ?: ServerFunctionsImpl().also { INSTANCE = it }
-                }
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: ServerFunctionsImpl().also { INSTANCE = it }
+            }
     }
 }

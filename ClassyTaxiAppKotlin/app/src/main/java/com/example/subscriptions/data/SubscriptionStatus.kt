@@ -32,12 +32,11 @@ data class SubscriptionStatus(
     var isLocalPurchase: Boolean = false,
 
     // Remote fields.
-    var sku: String? = null,
+    var product: String? = null,
     var purchaseToken: String? = null,
     var isEntitlementActive: Boolean = false,
     var willRenew: Boolean = false,
     var activeUntilMillisec: Long = 0,
-    var isFreeTrial: Boolean = false,
     var isGracePeriod: Boolean = false,
     var isAccountHold: Boolean = false,
     var isPaused: Boolean = false,
@@ -53,11 +52,11 @@ data class SubscriptionStatus(
          * a different user, so we need to construct a local record with the basic fields.
          */
         fun alreadyOwnedSubscription(
-            sku: String,
+            product: String,
             purchaseToken: String
         ): SubscriptionStatus {
             return SubscriptionStatus().apply {
-                this.sku = sku
+                this.product = product
                 this.purchaseToken = purchaseToken
                 isEntitlementActive = false
                 subAlreadyOwned = true

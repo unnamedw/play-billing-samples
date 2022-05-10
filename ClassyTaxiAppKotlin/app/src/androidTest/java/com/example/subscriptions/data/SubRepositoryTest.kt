@@ -27,10 +27,10 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 
-fun samplePurchase(sku: String, purchaseToken: String): Purchase =
+fun samplePurchase(product: String, purchaseToken: String): Purchase =
     Purchase(
         """
-        {"purchaseToken": "$purchaseToken", "productIds": ["$sku"]}
+        {"purchaseToken": "$purchaseToken", "productIds": ["$product"]}
         """, "signature"
     )
 
@@ -73,12 +73,24 @@ class SubRepositoryTest {
         try {
             testScope.runTest(5_000) {
                 // given
-                val purchase = samplePurchase("basic_subscription", "TEST_TOKEN")
-                coEvery { billingClientLifecycle.acknowledgePurchase("TEST_TOKEN") } returns true
-                every { billingClientLifecycle.purchases } returns MutableStateFlow(listOf(purchase))
+                val purchase = samplePurchase(
+                    "basic_subscription",
+                    "TEST_TOKEN"
+                )
+                coEvery {
+                    billingClientLifecycle
+                        .acknowledgePurchase("TEST_TOKEN")
+                } returns true
+                every {
+                    billingClientLifecycle
+                        .purchases
+                } returns MutableStateFlow(listOf(purchase))
 
                 // when
-                val result = repository.registerSubscription("basic_subscription", "TEST_TOKEN")
+                val result = repository.registerSubscription(
+                    "basic_subscription",
+                    "TEST_TOKEN"
+                )
 
                 // then
                 coVerify { billingClientLifecycle.acknowledgePurchase("TEST_TOKEN") }
@@ -87,7 +99,8 @@ class SubRepositoryTest {
                 // Walk around for timeout issue - likely error of Coroutines test
                 cancel()
             }
-        } catch (e: CancellationException) { /* ignore */ }
+        } catch (e: CancellationException) { /* ignore */
+        }
     }
 
     @Test
@@ -95,12 +108,24 @@ class SubRepositoryTest {
         try {
             testScope.runTest(5_000) {
                 // given
-                val purchase = samplePurchase("basic_subscription", "TEST_TOKEN")
-                coEvery { billingClientLifecycle.acknowledgePurchase(any()) } throws Exception("FAILURE!")
-                every { billingClientLifecycle.purchases } returns MutableStateFlow(listOf(purchase))
+                val purchase = samplePurchase(
+                    "basic_subscription",
+                    "TEST_TOKEN"
+                )
+                coEvery {
+                    billingClientLifecycle
+                        .acknowledgePurchase(any())
+                } throws Exception("FAILURE!")
+                every {
+                    billingClientLifecycle
+                        .purchases
+                } returns MutableStateFlow(listOf(purchase))
 
                 // when
-                val result = repository.registerSubscription("basic_subscription", "TEST_TOKEN")
+                val result = repository.registerSubscription(
+                    "basic_subscription",
+                    "TEST_TOKEN"
+                )
 
                 // then
                 assertThat(result.isFailure, `is`(true))
@@ -109,7 +134,8 @@ class SubRepositoryTest {
                 // Walk around for timeout issue - likely error of Coroutines test
                 cancel()
             }
-        } catch (e: CancellationException) { /* ignore */ }
+        } catch (e: CancellationException) { /* ignore */
+        }
     }
 
     @Test
@@ -117,23 +143,33 @@ class SubRepositoryTest {
         try {
             testScope.runTest(5_000) {
                 // given
-                val purchase = samplePurchase("basic_subscription", "TEST_TOKEN")
-                coEvery { billingClientLifecycle.acknowledgePurchase("TEST_TOKEN") } coAnswers { true }
+                val purchase = samplePurchase(
+                    "basic_subscription",
+                    "TEST_TOKEN"
+                )
+                coEvery {
+                    billingClientLifecycle
+                        .acknowledgePurchase("TEST_TOKEN")
+                } coAnswers { true }
                 val purchaseState = MutableStateFlow(listOf(purchase))
                 every { billingClientLifecycle.purchases } returns purchaseState
 
                 // when
-                repository.registerSubscription("basic_subscription", "TEST_TOKEN")
+                repository.registerSubscription(
+                    "basic_subscription",
+                    "TEST_TOKEN"
+                )
 
                 // then
                 val storedSubscriptionList = subLocalDataSource.getSubscriptions().first()
                 val storedSubscription = storedSubscriptionList.first()
-                assertThat(storedSubscription.sku, `is`("basic_subscription"))
+                assertThat(storedSubscription.product, `is`("basic_subscription"))
                 assertThat(storedSubscription.purchaseToken, `is`("TEST_TOKEN"))
 
                 // Walk around for timeout issue - likely error of Coroutines test
                 cancel()
             }
-        } catch (e: CancellationException) { /* ignore */ }
+        } catch (e: CancellationException) { /* ignore */
+        }
     }
 }

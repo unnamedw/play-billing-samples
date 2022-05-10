@@ -23,7 +23,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.subscriptions.data.SubscriptionStatus
 
-@Database(entities = [(SubscriptionStatus::class)], version = 5)
+@Database(entities = [(SubscriptionStatus::class)], version = 6)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun subscriptionStatusDao(): SubscriptionStatusDao

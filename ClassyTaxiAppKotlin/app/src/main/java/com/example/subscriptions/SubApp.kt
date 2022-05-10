@@ -17,7 +17,7 @@
 package com.example.subscriptions
 
 import android.app.Application
-import com.example.subscriptions.Constants.Companion.USE_FAKE_SERVER
+import com.example.subscriptions.Constants.USE_FAKE_SERVER
 import com.example.subscriptions.billing.BillingClientLifecycle
 import com.example.subscriptions.data.SubRepository
 import com.example.subscriptions.data.disk.SubLocalDataSource

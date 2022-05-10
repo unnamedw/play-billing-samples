@@ -5,11 +5,10 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.subscriptions.data.SubscriptionStatus
-import org.junit.Test
 import org.hamcrest.CoreMatchers.`is`
-import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Before
+import org.junit.Test
 import org.junit.runner.RunWith
 
 
@@ -111,30 +110,30 @@ class SubscriptionUtilitiesTest {
     @Test
     fun basicTextForSubscription_returnsBasicTextForRegularSub() {
 
-        val basicSkuSubscription = SubscriptionStatus(
+        val basicProductSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
             isEntitlementActive = true,
-            sku = "basic_subscription",
+            product = "basic_subscription",
             isLocalPurchase = true,
             willRenew = true
         )
 
-        val result = basicTextForSubscription(context.resources, basicSkuSubscription)
+        val result = basicTextForSubscription(context.resources, basicProductSubscription)
         assertThat(result, `is`(BASIC_REGULAR_PURCHASE))
     }
 
     @Test
     fun basicTextForSubscription_returnsBasicTextForNotPurchasedSub() {
 
-        val nonBasicSkuSubscription = SubscriptionStatus(
+        val nonBasicProductSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
             isEntitlementActive = true,
-            sku = "premium_subscription",
+            product = "premium_subscription",
             isLocalPurchase = true,
             willRenew = true
         )
 
-        val result = basicTextForSubscription(context.resources, nonBasicSkuSubscription)
+        val result = basicTextForSubscription(context.resources, nonBasicProductSubscription)
         assertThat(result, `is`(BASIC_NOT_PURCHASED))
     }
 
@@ -213,30 +212,30 @@ class SubscriptionUtilitiesTest {
     @Test
     fun premiumTextForSubscription_returnsPremiumTextForRegularSub() {
 
-        val premiumSkuSubscription = SubscriptionStatus(
+        val premiumProductSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
             isEntitlementActive = true,
-            sku = "premium_subscription",
+            product = "premium_subscription",
             isLocalPurchase = true,
             willRenew = true
         )
 
-        val result = premiumTextForSubscription(context.resources, premiumSkuSubscription)
+        val result = premiumTextForSubscription(context.resources, premiumProductSubscription)
         assertThat(result, `is`(PREMIUM_REGULAR_PURCHASE))
     }
 
     @Test
     fun premiumTextForSubscription_returnsPremiumTextForNotPurchasedSub() {
 
-        val nonPremiumSkuSubscription = SubscriptionStatus(
+        val nonPremiumProductSubscription = SubscriptionStatus(
             subAlreadyOwned = false,
             isEntitlementActive = true,
-            sku = "basic_subscription",
+            product = "basic_subscription",
             isLocalPurchase = true,
             willRenew = true
         )
 
-        val result = premiumTextForSubscription(context.resources, nonPremiumSkuSubscription)
+        val result = premiumTextForSubscription(context.resources, nonPremiumProductSubscription)
         assertThat(result, `is`(PREMIUM_NOT_PURCHASED))
     }
 }

@@ -113,9 +113,9 @@ class SubscriptionStatusViewModel(
     /**
      * Register a new subscription.
      */
-    fun registerSubscription(sku: String, purchaseToken: String) {
+    fun registerSubscription(product: String, purchaseToken: String) {
         viewModelScope.launch {
-            val result = repository.registerSubscription(sku, purchaseToken)
+            val result = repository.registerSubscription(product, purchaseToken)
             if (result.isFailure) {
                 _errorMessage.emit(result.exceptionOrNull()?.localizedMessage)
             }
@@ -129,10 +129,11 @@ class SubscriptionStatusViewModel(
         Log.d(TAG, "transferSubscriptions")
         viewModelScope.launch {
             subscriptions.value.forEach { subscription ->
-                val sku = subscription.sku
+                val product = subscription.product
                 val purchaseToken = subscription.purchaseToken
-                if (sku != null && purchaseToken != null) {
-                    repository.transferSubscription(sku = sku, purchaseToken = purchaseToken)
+                if (product != null && purchaseToken != null) {
+                    repository.transferSubscription(
+                        product = product, purchaseToken = purchaseToken)
                 }
             }
         }

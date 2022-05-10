@@ -61,15 +61,21 @@ class SubRemoteDataSource private constructor(
     /**
      * POST request to register subscription.
      */
-    suspend fun registerSubscription(sku: String, purchaseToken: String): List<SubscriptionStatus> {
-        return serverFunctions.registerSubscription(sku = sku, purchaseToken = purchaseToken)
+    suspend fun registerSubscription(
+        product: String,
+        purchaseToken: String
+    ): List<SubscriptionStatus> {
+        return serverFunctions.registerSubscription(
+            product = product,
+            purchaseToken = purchaseToken
+        )
     }
 
     /**
      * POST request to transfer a subscription that is owned by someone else.
      */
-    suspend fun postTransferSubscriptionSync(sku: String, purchaseToken: String) {
-        serverFunctions.transferSubscription(sku = sku, purchaseToken = purchaseToken)
+    suspend fun postTransferSubscriptionSync(product: String, purchaseToken: String) {
+        serverFunctions.transferSubscription(product = product, purchaseToken = purchaseToken)
     }
 
     /**
@@ -85,6 +91,20 @@ class SubRemoteDataSource private constructor(
     suspend fun postUnregisterInstanceId(instanceId: String) {
         serverFunctions.unregisterInstanceId(instanceId)
     }
+
+    /**
+     * POST request to acknowledge a subscription.
+     */
+    suspend fun postAcknowledgeSubscription(
+        product: String,
+        purchaseToken: String
+    ): List<SubscriptionStatus> {
+        return serverFunctions.acknowledgeSubscription(
+            product = product,
+            purchaseToken = purchaseToken
+        )
+    }
+
 
     companion object {
         @Volatile

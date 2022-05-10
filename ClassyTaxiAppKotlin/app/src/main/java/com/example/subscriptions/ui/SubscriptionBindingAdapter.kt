@@ -1,21 +1,19 @@
-/*
- * Copyright 2018 Google LLC. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+/**
+* Copyright 2018 Google LLC. All rights reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 package com.example.subscriptions.ui
-
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -59,6 +57,7 @@ fun ProgressBar.loadingProgressBar(loading: Boolean?) {
 /**
  * Load image with original size. If url is null, hide [ImageView]
  */
+
 @BindingAdapter("loadImageOrHide")
 fun ImageView.loadImageOrHide(url: String?) {
     if (url != null) {
@@ -113,7 +112,6 @@ fun LinearLayout.updateHomeViews(subscriptions: List<SubscriptionStatus>?) {
     val downgradeMessage = findViewById<View>(R.id.basic_downgrade_message)
     val prepaidMessage = findViewById<View>(R.id.prepaid_basic_content)
     val accountPausedMessageText = findViewById<TextView>(R.id.home_account_paused_message_text)
-
     // Set visibility assuming no subscription is available.
     // If a subscription is found that meets certain criteria, then the visibility of the paywall
     // will be changed to View.GONE.
@@ -124,7 +122,6 @@ fun LinearLayout.updateHomeViews(subscriptions: List<SubscriptionStatus>?) {
         restoreMessage, gracePeriodMessage, transferMessage, accountHoldMessage,
         accountPausedMessage, basicMessage, prepaidMessage, downgradeMessage
     ).forEach { it.visibility = View.GONE }
-
     // Update based on subscription information.
     subscriptions?.forEach { subscription ->
         if (subscription.isBasicContent && isSubscriptionRestore(subscription) && !subscription.isPrepaid) {
@@ -141,7 +138,7 @@ fun LinearLayout.updateHomeViews(subscriptions: List<SubscriptionStatus>?) {
             gracePeriodMessage.visibility = View.VISIBLE
             paywallMessage.visibility = View.GONE // Paywall gone.
         }
-        if (isTransferRequired(subscription) && subscription.sku == Constants.BASIC_SKU) {
+        if (isTransferRequired(subscription) && subscription.product == Constants.BASIC_PRODUCT) {
             Log.d(TAG, "transfer VISIBLE")
             transferMessage.visibility = View.VISIBLE
             paywallMessage.visibility = View.GONE // Paywall gone.
@@ -196,7 +193,6 @@ fun LinearLayout.updatePremiumViews(subscriptions: List<SubscriptionStatus>?) {
     val upgradeMessage = findViewById<View>(R.id.premium_upgrade_message)
     val prepaidMessage = findViewById<View>(R.id.prepaid_premium_content)
     val accountPausedMessageText = findViewById<TextView>(R.id.premium_account_paused_message_text)
-
     // Set visibility assuming no subscription is available.
     // If a subscription is found that meets certain criteria, then the visibility of the paywall
     // will be changed to View.GONE.
@@ -207,7 +203,6 @@ fun LinearLayout.updatePremiumViews(subscriptions: List<SubscriptionStatus>?) {
         restoreMessage, gracePeriodMessage, transferMessage, accountHoldMessage,
         accountPausedMessage, premiumContent, upgradeMessage, prepaidMessage
     ).forEach { it.visibility = View.GONE }
-
     // The Upgrade button should appear if the user has a basic subscription, but does not
     // have a premium subscription. This variable keeps track of whether a premium subscription
     // has been found when looking through the list of subscriptions.
@@ -228,7 +223,7 @@ fun LinearLayout.updatePremiumViews(subscriptions: List<SubscriptionStatus>?) {
                 gracePeriodMessage.visibility = View.VISIBLE
                 paywallMessage.visibility = View.GONE // Paywall gone.
             }
-            if (isTransferRequired(subscription) && subscription.sku == Constants.PREMIUM_SKU) {
+            if (isTransferRequired(subscription) && subscription.product == Constants.PREMIUM_PRODUCT) {
                 Log.d(TAG, "transfer VISIBLE")
                 transferMessage.visibility = View.VISIBLE
                 paywallMessage.visibility = View.GONE // Paywall gone.
@@ -247,7 +242,6 @@ fun LinearLayout.updatePremiumViews(subscriptions: List<SubscriptionStatus>?) {
                 accountPausedMessage.visibility = View.VISIBLE
                 paywallMessage.visibility = View.GONE // Paywall gone.
             }
-
             // The upgrade message must be shown if there is a basic subscription
             // and there are zero premium subscriptions. We need to keep track of the premium
             // subscriptions and hide the upgrade message if we find any.
@@ -282,24 +276,22 @@ fun LinearLayout.updateSettingsViews(subscriptions: List<SubscriptionStatus>?) {
     val basicButton = findViewById<Button>(R.id.subscription_option_basic_button)
     val settingsTransferMessage = findViewById<View>(R.id.settings_transfer_message)
     val settingsTransferMessageText = findViewById<TextView>(R.id.settings_transfer_message_text)
-
     // Set default button text: it might be overridden based on the subscription state.
     premiumButton.text = resources.getString(R.string.subscription_option_premium_message)
     basicButton.text = resources.getString(R.string.subscription_option_basic_message)
-
     // Update based on subscription information.
     var basicRequiresTransfer = false
     var premiumRequiresTransfer = false
     subscriptions?.forEach { subscription ->
-        when (subscription.sku) {
-            Constants.BASIC_SKU -> {
+        when (subscription.product) {
+            Constants.BASIC_PRODUCT -> {
                 basicButton.text =
                     basicTextForSubscription(resources, subscription)
                 if (isTransferRequired(subscription)) {
                     basicRequiresTransfer = true
                 }
             }
-            Constants.PREMIUM_SKU -> {
+            Constants.PREMIUM_PRODUCT -> {
                 premiumButton.text =
                     premiumTextForSubscription(resources, subscription)
                 if (isTransferRequired(subscription)) {
@@ -312,15 +304,15 @@ fun LinearLayout.updateSettingsViews(subscriptions: List<SubscriptionStatus>?) {
         basicRequiresTransfer && premiumRequiresTransfer -> {
             val basicName = resources.getString(R.string.basic_button_text)
             val premiumName = resources.getString(R.string.premium_button_text)
-            resources.getString(R.string.transfer_message_with_two_skus, basicName, premiumName)
+            resources.getString(R.string.transfer_message_with_two_products, basicName, premiumName)
         }
         basicRequiresTransfer -> {
             val basicName = resources.getString(R.string.basic_button_text)
-            resources.getString(R.string.transfer_message_with_sku, basicName)
+            resources.getString(R.string.transfer_message_with_product, basicName)
         }
         premiumRequiresTransfer -> {
             val premiumName = resources.getString(R.string.premium_button_text)
-            resources.getString(R.string.transfer_message_with_sku, premiumName)
+            resources.getString(R.string.transfer_message_with_product, premiumName)
         }
         else -> null
     }

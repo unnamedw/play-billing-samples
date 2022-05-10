@@ -34,6 +34,8 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Repository handling the work with subscriptions.
@@ -91,19 +93,20 @@ class SubRepository private constructor(
 
         // When the list of purchases changes, we need to update the subscription status
         // to indicate whether the subscription is local or not. It is local if the
-        // the Google Play Billing APIs return a Purchase record for the SKU. It is not
+        // the Google Play Billing APIs return a Purchase record for the product. It is not
         // local if there is no record of the subscription on the device.
         externalScope.launch {
             billingClientLifecycle.purchases.collect { purchases ->
                 Log.i(TAG, "Collected purchases...")
                 val currentSubscriptions = subscriptions.value
                 val hasChanged = updateLocalPurchaseTokens(currentSubscriptions, purchases)
-                // We only need to update the database if [isLocalPurchase] field needs to be changed.
+                // We only need to update the database if [isLocalPurchase] field needs
+                // to be changed.
                 if (hasChanged) {
-                     localDataSource.updateSubscriptions(currentSubscriptions)
+                    localDataSource.updateSubscriptions(currentSubscriptions)
                 }
                 purchases.forEach {
-                    registerSubscription(it.skus.first(), it.purchaseToken)
+                    registerSubscription(it.products.first(), it.purchaseToken)
                 }
             }
         }
@@ -117,10 +120,10 @@ class SubRepository private constructor(
         val mergedSubscriptions =
             mergeSubscriptionsAndPurchases(currentSubscriptions, remoteSubscriptions, purchases)
 
-        val readyToStoreLocally = remoteSubscriptions?.let {
+        // Acknowledge the subscription if it is not.
+        remoteSubscriptions?.let {
             acknowledgeRegisteredPurchaseTokens(it)
-        } ?: true
-        if (!readyToStoreLocally) return
+        }
 
         // Store the subscription information when it changes.
         localDataSource.updateSubscriptions(mergedSubscriptions)
@@ -131,11 +134,11 @@ class SubRepository private constructor(
             var updateBasic = false
             var updatePremium = false
             for (subscription in it) {
-                when (subscription.sku) {
-                    Constants.BASIC_SKU -> {
+                when (subscription.product) {
+                    Constants.BASIC_PRODUCT -> {
                         updateBasic = true
                     }
-                    Constants.PREMIUM_SKU -> {
+                    Constants.PREMIUM_PRODUCT -> {
                         updatePremium = true
                         // Premium subscribers get access to basic content as well.
                         updateBasic = true
@@ -162,15 +165,35 @@ class SubRepository private constructor(
      * Acknowledge subscriptions that have been registered by the server.
      * Returns true if the param list was empty or all acknowledgement were succeeded
      */
+    /**
+     * Acknowledge subscriptions that have been registered by the server
+     * and update local data source.
+     */
     private suspend fun acknowledgeRegisteredPurchaseTokens(
         remoteSubscriptions: List<SubscriptionStatus>
-    ): Boolean {
-        val tokenList = remoteSubscriptions
-            .filter { !it.isAcknowledged }
-            .mapNotNull { it.purchaseToken }
-        if (tokenList.isEmpty()) return true
-        return tokenList.all {
-            billingClientLifecycle.acknowledgePurchase(it)
+    ) {
+        remoteSubscriptions.forEach { sub ->
+            if (!sub.isAcknowledged) {
+                return withContext(externalScope.coroutineContext) {
+                    try {
+                        val acknowledgedSubs =
+                            sub.purchaseToken?.let {
+                                sub.product?.let { it1 ->
+                                    acknowledgeSubscription(
+                                        it1, it
+                                    )
+                                }
+                            }
+                        if (acknowledgedSubs != null) {
+                            localDataSource.updateSubscriptions(acknowledgedSubs)
+                        } else {
+                            localDataSource.updateSubscriptions(listOf())
+                        }
+                    } catch (e: Exception) {
+                        throw e
+                    }
+                }
+            }
         }
     }
 
@@ -200,10 +223,10 @@ class SubRepository private constructor(
                 for (oldSubscription in oldSubscriptions) {
                     if (oldSubscription.subAlreadyOwned && oldSubscription.isLocalPurchase) {
                         // This old subscription was previously marked as "already owned" by
-                        // another user. It should be included in the output if the SKU
+                        // another user. It should be included in the output if the product
                         // and purchase token match their previous value.
                         for (purchase in purchases) {
-                            if (purchase.skus[0] == oldSubscription.sku &&
+                            if (purchase.products[0] == oldSubscription.product &&
                                 purchase.purchaseToken == oldSubscription.purchaseToken
                             ) {
                                 // The old subscription that was already owned subscription should
@@ -212,7 +235,7 @@ class SubRepository private constructor(
                                 var foundNewSubscription = false
                                 newSubscriptions?.let {
                                     for (newSubscription in it) {
-                                        if (newSubscription.sku == oldSubscription.sku) {
+                                        if (newSubscription.product == oldSubscription.product) {
                                             foundNewSubscription = true
                                         }
                                     }
@@ -243,7 +266,7 @@ class SubRepository private constructor(
             var isLocalPurchase = false
             var purchaseToken = subscription.purchaseToken
             purchases?.forEach { purchase ->
-                if (subscription.sku == purchase.skus[0]) {
+                if (subscription.product == purchase.products[0]) {
                     isLocalPurchase = true
                     purchaseToken = purchase.purchaseToken
                 }
@@ -274,13 +297,14 @@ class SubRepository private constructor(
     /**
      * Register subscription to this account and update local data source.
      */
-    suspend fun registerSubscription(sku: String, purchaseToken: String): Result<Unit> {
+    suspend fun registerSubscription(product: String, purchaseToken: String): Result<Unit> {
         return externalScope.async {
             try {
                 val subs =
-                    remoteDataSource.registerSubscription(sku = sku, purchaseToken = purchaseToken)
-                // TODO(b/134506821): Acknowledge purchases on the server.
-
+                    remoteDataSource.registerSubscription(
+                        product = product,
+                        purchaseToken = purchaseToken
+                    )
                 updateSubscriptionsFromNetwork(subs)
                 Result.success(Unit)
             } catch (e: Exception) {
@@ -292,9 +316,12 @@ class SubRepository private constructor(
     /**
      * Transfer subscription to this account and update local data source.
      */
-    suspend fun transferSubscription(sku: String, purchaseToken: String) {
+    suspend fun transferSubscription(product: String, purchaseToken: String) {
         externalScope.launch {
-            remoteDataSource.postTransferSubscriptionSync(sku = sku, purchaseToken = purchaseToken)
+            remoteDataSource.postTransferSubscriptionSync(
+                product = product,
+                purchaseToken = purchaseToken
+            )
         }.join()
     }
 
@@ -323,6 +350,20 @@ class SubRepository private constructor(
                 // then ViewModel should collect it and show appropriate error to user.
                 Log.e(TAG, "Failed to register the instance ID - ${e.localizedMessage}")
             }
+        }
+    }
+
+    /**
+     * Acknowledge subscription to this account.
+     */
+    private suspend fun acknowledgeSubscription(product: String, purchaseToken: String)
+            : List<SubscriptionStatus>? {
+        val result = remoteDataSource.postAcknowledgeSubscription(
+            product = product,
+            purchaseToken = purchaseToken
+        )
+        return suspendCoroutine { continuation ->
+            continuation.resume(result)
         }
     }
 

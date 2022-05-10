@@ -34,7 +34,6 @@ import com.android.billingclient.api.PurchasesResponseListener
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
-//import com.android.billingclient.api.acknowledgePurchase
 import com.example.subscriptions.Constants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -266,7 +265,7 @@ class BillingClientLifecycle private constructor(
                     TAG, "onPurchasesUpdated: Developer error means that Google Play " +
                             "does not recognize the configuration. If you are just getting started, " +
                             "make sure you have configured the application correctly in the " +
-                            "Google Play Console. The SKU product ID must match and the APK you " +
+                            "Google Play Console. The product ID must match and the APK you " +
                             "are using must be signed with release keys."
                 )
             }
@@ -412,9 +411,8 @@ class BillingClientLifecycle private constructor(
         private const val MAX_RETRY_ATTEMPT = 3
 
         private val LIST_OF_PRODUCTS = listOf(
-            Constants.BASIC_SKU,
-            Constants.PREMIUM_SKU,
-            Constants.PREPAID_SKU
+            Constants.BASIC_PRODUCT,
+            Constants.PREMIUM_PRODUCT,
         )
 
         @Volatile

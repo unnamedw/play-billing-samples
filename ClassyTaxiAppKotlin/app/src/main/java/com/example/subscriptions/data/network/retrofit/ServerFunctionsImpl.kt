@@ -20,7 +20,6 @@ import android.util.Log
 import com.example.subscriptions.BuildConfig.SERVER_URL
 import com.example.subscriptions.data.ContentResource
 import com.example.subscriptions.data.SubscriptionStatus
-import com.example.subscriptions.data.SubscriptionStatusList
 import com.example.subscriptions.data.network.firebase.ServerFunctions
 import com.example.subscriptions.data.network.retrofit.authentication.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,9 +77,12 @@ class ServerFunctionsImpl : ServerFunctions {
         }
     }
 
-    override suspend fun registerSubscription(sku: String, purchaseToken: String): List<SubscriptionStatus> {
+    override suspend fun registerSubscription(
+        product: String,
+        purchaseToken: String
+    ): List<SubscriptionStatus> {
         val data = SubscriptionStatus(
-            sku = sku,
+            product = product,
             purchaseToken = purchaseToken
         )
         pendingRequestCounter.use {
@@ -92,7 +94,7 @@ class ServerFunctionsImpl : ServerFunctions {
                     Log.w(TAG, "Subscription already exists")
                     val oldSubscriptions = _subscriptions.value
                     val newSubscription = SubscriptionStatus.alreadyOwnedSubscription(
-                        sku, purchaseToken
+                        product, purchaseToken
                     )
                     val newSubscriptions = insertOrUpdateSubscription(
                         oldSubscriptions, newSubscription
@@ -107,10 +109,10 @@ class ServerFunctionsImpl : ServerFunctions {
         }
     }
 
-    override suspend fun transferSubscription(sku: String, purchaseToken: String):
-        List<SubscriptionStatus> {
+    override suspend fun transferSubscription(product: String, purchaseToken: String):
+            List<SubscriptionStatus> {
         val data = SubscriptionStatus().also {
-            it.sku = sku
+            it.product = product
             it.purchaseToken = purchaseToken
         }
         pendingRequestCounter.use {
@@ -133,23 +135,42 @@ class ServerFunctionsImpl : ServerFunctions {
         }
     }
 
+    override suspend fun acknowledgeSubscription(
+        product: String,
+        purchaseToken: String
+    ): List<SubscriptionStatus> {
+        val data = SubscriptionStatus(
+            product = product,
+            purchaseToken = purchaseToken
+        )
+        pendingRequestCounter.use {
+            val response = retrofitClient.getService().acknowledgeSubscription(data)
+
+            if (!response.isSuccessful) {
+                Log.e(TAG, response.errorLog())
+                throw Exception("Failed to fetch subscriptions from the server")
+            }
+            return response.body()?.subscriptions.orEmpty()
+        }
+    }
+
     /**
      * Inserts or updates the subscription to the list of existing com.example.subscriptions.
      *
-     * If none of the existing com.example.subscriptions have a SKU that matches, insert this SKU.
-     * If a subscription exists with the matching SKU, the output list will contain the new
-     * subscription instead of the old subscription.
+     * If none of the existing com.example.subscriptions have a product that matches, insert this
+     * Product. If a subscription exists with the matching Product, the output list will contain the
+     * new subscription instead of the old subscription.
+     *
      */
     private fun insertOrUpdateSubscription(
         oldSubscriptions: List<SubscriptionStatus>?,
         newSubscription: SubscriptionStatus
     ): List<SubscriptionStatus> {
         if (oldSubscriptions.isNullOrEmpty()) return listOf(newSubscription)
-        return oldSubscriptions.filter { it.sku != newSubscription.sku } + newSubscription
+        return oldSubscriptions.filter { it.product != newSubscription.product } + newSubscription
     }
 
     companion object {
         private const val TAG = "RemoteServerFunction"
     }
 }
-

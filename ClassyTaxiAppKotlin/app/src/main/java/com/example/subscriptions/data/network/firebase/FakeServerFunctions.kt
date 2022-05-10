@@ -82,14 +82,14 @@ class FakeServerFunctions : ServerFunctions {
         return subscriptions
     }
 
-    override suspend fun registerSubscription(sku: String, purchaseToken: String):
+    override suspend fun registerSubscription(product: String, purchaseToken: String):
         List<SubscriptionStatus> {
-        val result = when (sku) {
-            Constants.BASIC_SKU -> listOf(createFakeBasicSubscription())
-            Constants.PREMIUM_SKU -> listOf(createFakePremiumSubscription())
+        val result = when (product) {
+            Constants.BASIC_PRODUCT -> listOf(createFakeBasicSubscription())
+            Constants.PREMIUM_PRODUCT -> listOf(createFakePremiumSubscription())
             else -> listOf(
                 createAlreadyOwnedSubscription(
-                    sku = sku, purchaseToken = purchaseToken
+                    product = product, purchaseToken = purchaseToken
                 )
             )
         }
@@ -97,10 +97,10 @@ class FakeServerFunctions : ServerFunctions {
         return result
     }
 
-    override suspend fun transferSubscription(sku: String, purchaseToken: String):
+    override suspend fun transferSubscription(product: String, purchaseToken: String):
         List<SubscriptionStatus> {
         val subscription = createFakeBasicSubscription().apply {
-            this.sku = sku
+            this.product = product
             this.purchaseToken = purchaseToken
             subAlreadyOwned = false
             isEntitlementActive = true
@@ -117,11 +117,11 @@ class FakeServerFunctions : ServerFunctions {
      * Created when the server returns HTTP 409 CONFLICT after a subscription registration request.
      */
     private fun createAlreadyOwnedSubscription(
-        sku: String,
+        product: String,
         purchaseToken: String
     ): SubscriptionStatus {
         return SubscriptionStatus().apply {
-            this.sku = sku
+            this.product = product
             this.purchaseToken = purchaseToken
             isEntitlementActive = false
             subAlreadyOwned = true
@@ -152,7 +152,7 @@ class FakeServerFunctions : ServerFunctions {
         return SubscriptionStatus().apply {
             isEntitlementActive = true
             willRenew = true
-            sku = Constants.BASIC_SKU
+            product = Constants.BASIC_PRODUCT
             isAccountHold = false
             isGracePeriod = false
             purchaseToken = null
@@ -164,7 +164,7 @@ class FakeServerFunctions : ServerFunctions {
         return SubscriptionStatus().apply {
             isEntitlementActive = true
             willRenew = true
-            sku = Constants.PREMIUM_SKU
+            product = Constants.PREMIUM_PRODUCT
             isAccountHold = false
             isGracePeriod = false
             purchaseToken = null
@@ -176,7 +176,7 @@ class FakeServerFunctions : ServerFunctions {
         return SubscriptionStatus().apply {
             isEntitlementActive = false
             willRenew = true
-            sku = Constants.PREMIUM_SKU
+            product = Constants.PREMIUM_PRODUCT
             isAccountHold = true
             isGracePeriod = false
             purchaseToken = null
@@ -188,7 +188,7 @@ class FakeServerFunctions : ServerFunctions {
         return SubscriptionStatus().apply {
             isEntitlementActive = false
             willRenew = true
-            sku = Constants.PREMIUM_SKU
+            product = Constants.PREMIUM_PRODUCT
             isPaused = true
             isGracePeriod = false
             purchaseToken = null
@@ -200,7 +200,7 @@ class FakeServerFunctions : ServerFunctions {
         return SubscriptionStatus().apply {
             isEntitlementActive = true
             willRenew = true
-            sku = Constants.BASIC_SKU
+            product = Constants.BASIC_PRODUCT
             isAccountHold = false
             isGracePeriod = true
             purchaseToken = null
@@ -212,10 +212,10 @@ class FakeServerFunctions : ServerFunctions {
         return SubscriptionStatus().apply {
             isEntitlementActive = false
             willRenew = true
-            sku = Constants.BASIC_SKU
+            product = Constants.BASIC_PRODUCT
             isAccountHold = false
             isGracePeriod = false
-            purchaseToken = Constants.BASIC_SKU // Very fake data.
+            purchaseToken = Constants.BASIC_PRODUCT // Very fake data.
             subAlreadyOwned = true
         }
     }
@@ -224,7 +224,7 @@ class FakeServerFunctions : ServerFunctions {
         return SubscriptionStatus().apply {
             isEntitlementActive = true
             willRenew = false
-            sku = Constants.BASIC_SKU
+            product = Constants.BASIC_PRODUCT
             isAccountHold = false
             isGracePeriod = false
             purchaseToken = null
@@ -236,7 +236,7 @@ class FakeServerFunctions : ServerFunctions {
         return SubscriptionStatus().apply {
             isEntitlementActive = true
             willRenew = false
-            sku = Constants.PREMIUM_SKU
+            product = Constants.PREMIUM_PRODUCT
             isAccountHold = false
             isGracePeriod = false
             purchaseToken = null

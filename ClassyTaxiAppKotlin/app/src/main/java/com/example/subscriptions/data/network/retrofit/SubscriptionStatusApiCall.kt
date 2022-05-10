@@ -36,9 +36,14 @@ interface SubscriptionStatusApiCall {
     // Registers subscription status to the server and get updated list of subscriptions
     @PUT("subscription_register_v2")
     suspend fun registerSubscription(@Body registerStatus: SubscriptionStatus):
-        Response<SubscriptionStatusList>
+            Response<SubscriptionStatusList>
 
     // Transfers subscription status to another account.
     @PUT("subscription_transfer_v2")
-    suspend fun transferSubscription(@Body transferStatus: SubscriptionStatus): SubscriptionStatusList
+    suspend fun transferSubscription(@Body transferStatus: SubscriptionStatus)
+            : SubscriptionStatusList
+
+    @PUT("acknowledge_purchase")
+    suspend fun acknowledgeSubscription(@Body acknowledge: SubscriptionStatus)
+            : Response<SubscriptionStatusList>
 }

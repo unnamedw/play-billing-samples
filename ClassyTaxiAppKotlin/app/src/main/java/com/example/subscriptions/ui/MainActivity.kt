@@ -103,14 +103,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Open the Play Store when this event is triggered.
-        billingViewModel.openPlayStoreSubscriptionsEvent.observe(this) { sku ->
+        billingViewModel.openPlayStoreSubscriptionsEvent.observe(this) { product ->
             Log.i(TAG, "Viewing subscriptions on the Google Play Store")
-            val url = if (sku == null) {
-                // If the SKU is not specified, just open the Google Play subscriptions URL.
+            val url = if (product == null) {
+                // If the Product is not specified, just open the Google Play subscriptions URL.
                 Constants.PLAY_STORE_SUBSCRIPTION_URL
             } else {
-                // If the SKU is specified, open the deeplink for this SKU on Google Play.
-                String.format(Constants.PLAY_STORE_SUBSCRIPTION_DEEPLINK_URL, sku, packageName)
+                // If the Product is specified, open the deeplink for this Product on Google Play.
+                String.format(Constants.PLAY_STORE_SUBSCRIPTION_DEEPLINK_URL, product, packageName)
             }
             val intent = Intent(Intent.ACTION_VIEW)
             intent.data = Uri.parse(url)
@@ -135,15 +135,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Register SKUs and purchase tokens with the server.
+     * Register Products and purchase tokens with the server.
      */
     private fun registerPurchases(purchaseList: List<Purchase>) {
         for (purchase in purchaseList) {
-            val sku = purchase.skus[0]
+            val product = purchase.products[0]
             val purchaseToken = purchase.purchaseToken
-            Log.d(TAG, "Register purchase with sku: $sku, token: $purchaseToken")
+            Log.d(TAG, "Register purchase with product: $product, token: $purchaseToken")
             subscriptionViewModel.registerSubscription(
-                sku = sku,
+                product = product,
                 purchaseToken = purchaseToken
             )
         }

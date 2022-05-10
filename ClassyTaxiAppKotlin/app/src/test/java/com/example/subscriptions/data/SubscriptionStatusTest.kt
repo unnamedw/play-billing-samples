@@ -32,7 +32,7 @@ class SubscriptionStatusTest {
 
     @Test
     fun alreadyOwnedIsNotValid() {
-        assertEquals(alreadyOwnedSub.sku, "TEST_SKU")
+        assertEquals(alreadyOwnedSub.product, "TEST_PRODUCT")
         assertEquals(alreadyOwnedSub.purchaseToken, "TEST_PURCHASE_TOKEN")
         assertFalse("Sub must not be active", alreadyOwnedSub.isEntitlementActive)
         assertTrue("Sub must be already owned", alreadyOwnedSub.subAlreadyOwned)
@@ -44,7 +44,10 @@ class SubscriptionStatusTest {
         val subList = gson.fromJson(testData, SubscriptionStatusList::class.java)
         assertNotNull("List must not be null", subList.subscriptions)
         if (subList == null) return
-        assertTrue("Empty data must create an empty list", subList.subscriptions.isNullOrEmpty())
+        assertTrue(
+            "Empty data must create an empty list",
+            subList.subscriptions.isNullOrEmpty()
+        )
     }
 
     @Test
@@ -61,7 +64,10 @@ class SubscriptionStatusTest {
         assertNotNull("List must not be null", subList.subscriptions)
         if (subList == null) return
 
-        assertFalse("Subscription must not be empty", subList.subscriptions.isNullOrEmpty())
+        assertFalse(
+            "Subscription must not be empty",
+            subList.subscriptions.isNullOrEmpty()
+        )
         subList.subscriptions!![0].run {
             assertTrue("Subscription must renew", willRenew)
             assertEquals(
@@ -72,9 +78,14 @@ class SubscriptionStatusTest {
             )
             assertFalse("Grace period must match", isGracePeriod)
             assertTrue("Subscription must be active", isEntitlementActive)
-            assertEquals("Expiry time must match", 1523347054184L, activeUntilMillisec)
-            assertFalse("Free trial must match", isFreeTrial)
-            assertEquals("Subscription must be basic", "basic_subscription", sku)
+            assertEquals(
+                "Expiry time must match", 1523347054184L,
+                activeUntilMillisec
+            )
+            assertEquals(
+                "Subscription must be basic",
+                "basic_subscription", product
+            )
             assertFalse("Account hold must match", isAccountHold)
         }
     }
@@ -87,7 +98,10 @@ class SubscriptionStatusTest {
         assertNotNull("List must not be null", subList)
         if (subList == null) return
 
-        assertFalse("Subscription must not be empty", subList.subscriptions.isNullOrEmpty())
+        assertFalse(
+            "Subscription must not be empty",
+            subList.subscriptions.isNullOrEmpty()
+        )
         subList.subscriptions!![0].run {
             assertTrue("Subscription must renew", willRenew)
             assertEquals(
@@ -98,9 +112,14 @@ class SubscriptionStatusTest {
             )
             assertFalse("Grace period must match", isGracePeriod)
             assertTrue("Subscription must be active", isEntitlementActive)
-            assertEquals("Expiry time must match", 1523347054184L, activeUntilMillisec)
-            assertFalse("Free trial must match", isFreeTrial)
-            assertEquals("Subscription must be basic", "basic_subscription", sku)
+            assertEquals(
+                "Expiry time must match",
+                1523347054184L, activeUntilMillisec
+            )
+            assertEquals(
+                "Subscription must be basic",
+                "basic_subscription", product
+            )
             assertFalse("Account hold must match", isAccountHold)
         }
     }
@@ -112,7 +131,10 @@ class SubscriptionStatusTest {
         assertNotNull("List must not be null", subList)
         if (subList == null) return
 
-        assertFalse("Subscription must not be empty", subList.subscriptions.isNullOrEmpty())
+        assertFalse(
+            "Subscription must not be empty",
+            subList.subscriptions.isNullOrEmpty()
+        )
         subList.subscriptions!![0].run {
             assertTrue("Subscription must renew", willRenew)
             assertEquals(
@@ -123,9 +145,14 @@ class SubscriptionStatusTest {
             )
             assertFalse("Grace period must match", isGracePeriod)
             assertTrue("Subscription must be active", isEntitlementActive)
-            assertEquals("Expiry time must match", 1523347054184L, activeUntilMillisec)
-            assertFalse("Free trial must match", isFreeTrial)
-            assertEquals("Subscription must be premium", "premium_subscription", sku)
+            assertEquals(
+                "Expiry time must match",
+                1523347054184L, activeUntilMillisec
+            )
+            assertEquals(
+                "Subscription must be premium",
+                "premium_subscription", product
+            )
             assertFalse("Account hold must match", isAccountHold)
         }
     }
@@ -137,9 +164,12 @@ class SubscriptionStatusTest {
         assertNotNull("List must not be null", subList)
         if (subList == null) return
 
-        assertFalse("Subscription must not be empty", subList.subscriptions.isNullOrEmpty())
+        assertFalse(
+            "Subscription must not be empty",
+            subList.subscriptions.isNullOrEmpty()
+        )
         subList.subscriptions!![0].run {
-            assertEquals("SKU must match", "basic_subscription", sku)
+            assertEquals("Product must match", "basic_subscription", product)
             assertEquals(
                 "Token must match", "jlbjaefklclbngobohijodfa." +
                         "AO-J1Ozh_NnSw4YWqcGNaVXBndXhUz1zS-6v_NDW6BaVTLCM9VOSfjLXTVgT2AlJdQD7" +
@@ -148,8 +178,10 @@ class SubscriptionStatusTest {
             )
             assertFalse("Subscription must not be active", isEntitlementActive)
             assertTrue("Renewal must match", willRenew)
-            assertEquals("Expiry time must match", 1523324641475L, activeUntilMillisec)
-            assertFalse("Free trial must match", isFreeTrial)
+            assertEquals(
+                "Expiry time must match",
+                1523324641475L, activeUntilMillisec
+            )
             assertFalse("Grace period must match", isGracePeriod)
             assertTrue("Account hold must match", isAccountHold)
         }
@@ -162,7 +194,10 @@ class SubscriptionStatusTest {
         assertNotNull("List must not be null", subList)
         if (subList == null) return
 
-        assertFalse("Subscription must not be empty", subList.subscriptions.isNullOrEmpty())
+        assertFalse(
+            "Subscription must not be empty",
+            subList.subscriptions.isNullOrEmpty()
+        )
         subList.subscriptions!![0].run {
             assertTrue("Subscription must be active", isEntitlementActive)
             assertTrue("Subscription must be grace period", isGracePeriod)
@@ -176,9 +211,12 @@ class SubscriptionStatusTest {
         assertNotNull("List must not be null", subList)
         if (subList == null) return
 
-        assertFalse("Subscription must not be empty", subList.subscriptions.isNullOrEmpty())
+        assertFalse(
+            "Subscription must not be empty",
+            subList.subscriptions.isNullOrEmpty()
+        )
         subList.subscriptions!![0].run {
-            assertEquals("SKU must match", "cheap_subscription", sku)
+            assertEquals("Product must match", "cheap_subscription", product)
             assertEquals(
                 "Token must match", "onhhinbenecfbpohlgpkpica." +
                         "AO-J1OyHDwGfi22SvG2VdeGdrR9nz0D3WY_YPda6qr7yssmdQ6oX2PKEiKfaN4B9LVx1L" +
@@ -187,8 +225,10 @@ class SubscriptionStatusTest {
             )
             assertTrue("Subscription must be active", isEntitlementActive)
             assertFalse("Subscription must not renew", willRenew)
-            assertEquals("Expiry time must match", 1523346934184L, activeUntilMillisec)
-            assertFalse("Free trial must match", isFreeTrial)
+            assertEquals(
+                "Expiry time must match",
+                1523346934184L, activeUntilMillisec
+            )
             assertFalse("Grace period must match", isGracePeriod)
             assertFalse("Account hold must match", isAccountHold)
         }
@@ -211,7 +251,7 @@ class SubscriptionStatusTest {
 
     companion object {
         val alreadyOwnedSub = SubscriptionStatus.alreadyOwnedSubscription(
-            sku = "TEST_SKU",
+            product = "TEST_PRODUCT",
             purchaseToken = "TEST_PURCHASE_TOKEN"
         )
     }
