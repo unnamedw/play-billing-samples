@@ -14,32 +14,34 @@
  * limitations under the License.
  */
 
-import * as PlayBilling from "../play-billing";
+ import * as PlayBilling from "../play-billing";
 
-/* SubscriptionStatus is part of Model layer.
- * It's an entity represents a subcription purchase from client app's perspective
- * It wraps the more general purpose SubscriptionPurchase class of Play Billing reusable component
- */
-export class SubscriptionStatus {
-  sku: string;
-  purchaseToken: string;
-  isEntitlementActive: boolean;
-  willRenew: boolean;
-  activeUntilMillisec: number;
-  isGracePeriod: boolean;
-  isAccountHold: boolean;
-  isPaused: boolean;
-  isAcknowledged: boolean;
+ /* SubscriptionStatus is part of Model layer.
+  * It's an entity represents a subcription purchase from client app's perspective
+  * It wraps the more general purpose SubscriptionPurchase class of Play Billing reusable component
+  */
+ export class SubscriptionStatus {
+   product: string;
+   purchaseToken: string;
+   isEntitlementActive: boolean;
+   willRenew: boolean;
+   activeUntilMillisec: number;
+   isGracePeriod: boolean;
+   isAccountHold: boolean;
+   isPaused: boolean;
+   isAcknowledged: boolean;
+   autoResumeTimeMillis: number;
 
-  constructor(subcriptionPurchase: PlayBilling.SubscriptionPurchaseV2) {
-    this.sku = subcriptionPurchase.sku;
-    this.purchaseToken = subcriptionPurchase.purchaseToken;
-    this.isEntitlementActive = subcriptionPurchase.isEntitlementActive();
-    this.willRenew = subcriptionPurchase.willRenew();
-    this.activeUntilMillisec = subcriptionPurchase.activeUntilDate().getTime();
-    this.isGracePeriod = subcriptionPurchase.isGracePeriod();
-    this.isAccountHold = subcriptionPurchase.isAccountHold();
-    this.isPaused = subcriptionPurchase.isPaused();
-    this.isAcknowledged = subcriptionPurchase.isAcknowledged();
-  }
-}
+   constructor(subcriptionPurchase: PlayBilling.SubscriptionPurchaseV2) {
+     this.product = subcriptionPurchase.product;
+     this.purchaseToken = subcriptionPurchase.purchaseToken;
+     this.isEntitlementActive = subcriptionPurchase.isEntitlementActive();
+     this.willRenew = subcriptionPurchase.willRenew();
+     this.activeUntilMillisec = subcriptionPurchase.activeUntilDate();
+     this.isGracePeriod = subcriptionPurchase.isGracePeriod();
+     this.isAccountHold = subcriptionPurchase.isAccountHold();
+     this.isPaused = subcriptionPurchase.isPaused();
+     this.isAcknowledged = subcriptionPurchase.isAcknowledged();
+     this.autoResumeTimeMillis = subcriptionPurchase.autoResumeTime();
+   }
+ }

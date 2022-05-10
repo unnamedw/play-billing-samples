@@ -25,6 +25,6 @@
  */
 
 export { default as PlayBilling } from "./PlayBilling";
-export { Purchase, OneTimeProductPurchase, SubscriptionPurchase, SubscriptionPurchaseV2, SkuType } from "./types/purchases";
+export { Purchase, OneTimeProductPurchase, SubscriptionPurchase, SubscriptionPurchaseV2, ProductType } from "./types/purchases";
 export { PurchaseQueryError, PurchaseUpdateError } from "./types/errors";
 export { DeveloperNotification, NotificationType } from "./types/notifications";
