@@ -20,13 +20,11 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import com.android.billingclient.api.BillingFlowParams
-import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.ProductDetails
 import com.example.subscriptions.Constants
 import com.example.subscriptions.SubApp
 import com.example.subscriptions.billing.deviceHasGooglePlaySubscription
-import com.example.subscriptions.billing.purchaseForSku
 import com.example.subscriptions.billing.serverHasSubscription
-import com.example.subscriptions.billing.subscriptionForSku
 import com.example.subscriptions.data.SubscriptionStatus
 import kotlinx.coroutines.flow.StateFlow
 
@@ -38,15 +36,17 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
     private val purchases = (application as SubApp).billingClientLifecycle.purchases
 
     /**
-     * SkuDetails for all known SKUs.
+     * ProductDetails for all known Products.
      */
-    private val skusWithSkuDetails =
-        (application as SubApp).billingClientLifecycle.skusWithSkuDetails
+    private val productsWithProductDetails =
+        (application as SubApp).billingClientLifecycle.productsWithProductDetails
+
 
     /**
      * Subscriptions record according to the server.
      */
-    private val subscriptions: StateFlow<List<SubscriptionStatus>> = (application as SubApp).repository.subscriptions
+    private val subscriptions: StateFlow<List<SubscriptionStatus>> =
+        (application as SubApp).repository.subscriptions
 
     /**
      * Send an event when the Activity needs to buy something.
@@ -60,8 +60,8 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
     val openPlayStoreSubscriptionsEvent = SingleLiveEvent<String>()
 
     /**
-     * Open the Play Store subscription center. If the user has exactly one SKU,
-     * then open the deeplink to the specific SKU.
+     * Open the Play Store subscription center. If the user has exactly one product,
+     * then open the deeplink to the specific Product.
      */
     fun openPlayStoreSubscriptions() {
         val hasBasic = deviceHasGooglePlaySubscription(purchases.value, Constants.BASIC_SKU)
@@ -69,11 +69,11 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         Log.d(TAG, "hasBasic: $hasBasic, hasPremium: $hasPremium")
         when {
             hasBasic && !hasPremium -> {
-                // If we just have a basic subscription, open the basic SKU.
+                // If we just have a basic subscription, open the basic Product.
                 openPlayStoreSubscriptionsEvent.postValue(Constants.BASIC_SKU)
             }
             !hasBasic && hasPremium -> {
-                // If we just have a premium subscription, open the premium SKU.
+                // If we just have a premium subscription, open the premium Product.
                 openPlayStoreSubscriptionsEvent.postValue(Constants.PREMIUM_SKU)
             }
             else -> {
@@ -91,217 +91,237 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
      * we use the server data to determine the deeplink to Google Play.
      */
     fun openSubscriptionPageOnGooglePlay() {
-        subscriptions.value.let {
+        subscriptions.value.let { subscriptionStatusList ->
             when {
-                serverHasSubscription(it, Constants.PREMIUM_SKU) ->
-                    openPremiumPlayStoreSubscriptions()
-                serverHasSubscription(it, Constants.BASIC_SKU) ->
-                    openBasicPlayStoreSubscriptions()
+                serverHasSubscription(subscriptionStatusList, Constants.PREMIUM_SKU) ->
+                    openProductPlayStoreSubscriptions(Constants.PREMIUM_SKU)
+                serverHasSubscription(subscriptionStatusList, Constants.BASIC_SKU) ->
+                    openProductPlayStoreSubscriptions(Constants.BASIC_SKU)
             }
         }
     }
 
     /**
-     * Open the Play Store basic subscription.
+     * Open the Play Store for the product subscription.
+     *
+     * @param product Product Id of the subscription product.
      */
-    private fun openBasicPlayStoreSubscriptions() {
-        openPlayStoreSubscriptionsEvent.postValue(Constants.BASIC_SKU)
+    private fun openProductPlayStoreSubscriptions(product: String) {
+        openPlayStoreSubscriptionsEvent.postValue(product)
     }
 
     /**
-     * Open the Play Store premium subscription.
+     * BillingFlowParams Builder for normal purchases.
+     *
+     * @param productDetails ProductDetails object returned by the library.
+     * @param offerToken the least priced offer's offer id token returned by
+     * [leastPricedOfferToken].
+     *
+     * @return [BillingFlowParams] builder.
      */
-    private fun openPremiumPlayStoreSubscriptions() {
-        openPlayStoreSubscriptionsEvent.postValue(Constants.PREMIUM_SKU)
+    private fun billingFlowParamsBuilder(productDetails: ProductDetails, offerToken: String):
+            BillingFlowParams {
+        return BillingFlowParams.newBuilder().setProductDetailsParamsList(
+            listOf(
+                BillingFlowParams.ProductDetailsParams.newBuilder()
+                    .setProductDetails(productDetails)
+                    .setOfferToken(offerToken)
+                    .build()
+            )
+        ).build()
     }
 
     /**
-     * Buy a basic subscription.
+     * BillingFlowParams Builder for upgrades and downgrades.
+     *
+     * @param productDetails ProductDetails object returned by the library.
+     * @param offerToken the least priced offer's offer id token returned by
+     * [leastPricedOfferToken].
+     * @param oldToken the purchase token of the subscription purchase being upgraded or downgraded.
+     *
+     * @return [BillingFlowParams] builder.
      */
-    fun buyBasic() {
-        val hasBasic = deviceHasGooglePlaySubscription(purchases.value, Constants.BASIC_SKU)
-        val hasPremium = deviceHasGooglePlaySubscription(purchases.value, Constants.PREMIUM_SKU)
-        Log.d(TAG, "hasBasic: $hasBasic, hasPremium: $hasPremium")
-        when {
-            hasBasic && hasPremium -> {
-                // If the user has both subscriptions, open the basic SKU on Google Play.
-                openPlayStoreSubscriptionsEvent.postValue(Constants.BASIC_SKU)
-            }
-            hasBasic && !hasPremium -> {
-                // If the user just has a basic subscription, open the basic SKU on Google Play.
-                openPlayStoreSubscriptionsEvent.postValue(Constants.BASIC_SKU)
-            }
-            !hasBasic && hasPremium -> {
-                // If the user just has a premium subscription, downgrade.
-                buy(sku = Constants.BASIC_SKU, oldSku = Constants.PREMIUM_SKU)
-            }
-            else -> {
-                // If the user does not have a subscription, buy the basic SKU.
-                buy(sku = Constants.BASIC_SKU, oldSku = null)
+    private fun upOrDowngradeBillingFlowParamsBuilder(
+        productDetails: ProductDetails, offerToken: String, oldToken: String
+    ): BillingFlowParams {
+        return BillingFlowParams.newBuilder().setProductDetailsParamsList(
+            listOf(
+                BillingFlowParams.ProductDetailsParams.newBuilder()
+                    .setProductDetails(productDetails)
+                    .setOfferToken(offerToken)
+                    .build()
+            )
+        ).setSubscriptionUpdateParams(
+            BillingFlowParams.SubscriptionUpdateParams.newBuilder()
+                .setOldPurchaseToken(oldToken)
+                .setReplaceProrationMode(
+                    BillingFlowParams.ProrationMode.IMMEDIATE_AND_CHARGE_FULL_PRICE
+                )
+                .build()
+        ).build()
+    }
+
+
+    /**
+     * Calculates the lowest priced offer amongst all eligible offers.
+     * In this implementation the lowest price of all offers' pricing phases is returned.
+     * It's possible the logic can be implemented differently.
+     * For example, the lowest average price in terms of month could be returned instead.
+     *
+     * @param offerDetails List of of eligible offers and base plans.
+     *
+     * @return the offer id token of the lowest priced offer.
+     *
+     */
+    private fun leastPricedOfferToken(
+        offerDetails: List<ProductDetails.SubscriptionOfferDetails>
+    ): String {
+        var offerToken = String()
+        var leastPricedOffer: ProductDetails.SubscriptionOfferDetails
+        var lowestPrice = Int.MAX_VALUE
+
+        if (!offerDetails.isNullOrEmpty()) {
+            for (offer in offerDetails) {
+                for (price in offer.pricingPhases.pricingPhaseList) {
+                    if (price.priceAmountMicros < lowestPrice) {
+                        lowestPrice = price.priceAmountMicros.toInt()
+                        leastPricedOffer = offer
+                        offerToken = leastPricedOffer.offerToken
+                    }
+                }
             }
         }
+        return offerToken
+
+        TODO("Replace this with least average priced offer implementation")
     }
 
     /**
-     * Buy a premium subscription.
+     * Retrieves all eligible base plans and offers using tags from ProductDetails.
+     *
+     * @param offerDetails offerDetails from a ProductDetails returned by the library.
+     * @param tag string representing tags associated with offers and base plans.
+     *
+     * @return the eligible offers and base plans in a list.
+     *
      */
-    fun buyPremium() {
-        val hasBasic = deviceHasGooglePlaySubscription(purchases.value, Constants.BASIC_SKU)
-        val hasPremium = deviceHasGooglePlaySubscription(purchases.value, Constants.PREMIUM_SKU)
-        Log.d(TAG, "hasBasic: $hasBasic, hasPremium: $hasPremium")
-        when {
-            hasBasic && hasPremium -> {
-                // If the user has both subscriptions, open the premium SKU on Google Play.
-                openPlayStoreSubscriptionsEvent.postValue(Constants.PREMIUM_SKU)
-            }
-            !hasBasic && hasPremium -> {
-                // If the user just has a premium subscription, open the premium SKU on Google Play.
-                openPlayStoreSubscriptionsEvent.postValue(Constants.PREMIUM_SKU)
-            }
-            hasBasic && !hasPremium -> {
-                // If the user just has a basic subscription, upgrade.
-                buy(sku = Constants.PREMIUM_SKU, oldSku = Constants.BASIC_SKU)
-            }
-            else -> {
-                // If the user does not have a subscription, buy the premium SKU.
-                buy(sku = Constants.PREMIUM_SKU, oldSku = null)
+    private fun retrieveEligibleOffers(
+        offerDetails: MutableList<ProductDetails.SubscriptionOfferDetails>, tag: String
+    ):
+            List<ProductDetails.SubscriptionOfferDetails> {
+        val eligibleOffers = mutableListOf<ProductDetails.SubscriptionOfferDetails>()
+        offerDetails.forEach { offerDetail ->
+            if (offerDetail.offerTags.contains(tag)) {
+                eligibleOffers.add(offerDetail)
             }
         }
+        return eligibleOffers
     }
-
-    /**
-     * Upgrade to a premium subscription.
-     */
-    fun buyUpgrade() = buy(Constants.PREMIUM_SKU, Constants.BASIC_SKU)
 
     /**
      * Use the Google Play Billing Library to make a purchase.
+     *
+     * @param tag String representing tags associated with offers and base plans.
+     * @param product Product being purchased.
+     * @param isUpOrDowngrade Boolean indicating wether the purchase is an upgrade or downgrade and
+     * when converting from one base plan to another.
+     *
      */
-    private fun buy(sku: String, oldSku: String?) {
-        // First, determine whether the new SKU can be purchased.
-        val currentSubscriptions = subscriptions.value
-        val currentPurchases = purchases.value
-        val isSkuOnServer = serverHasSubscription(currentSubscriptions, sku)
-        val isSkuOnDevice = deviceHasGooglePlaySubscription(currentPurchases, sku)
-        Log.d(TAG, "$sku - isSkuOnServer: $isSkuOnServer, isSkuOnDevice: $isSkuOnDevice")
+    fun buyBasePlans(tag: String, product: String, isUpOrDowngrade: Boolean) {
+        // First, determine whether the Product can be purchased.
+        val isProductOnServer = serverHasSubscription(subscriptions.value, product)
+        val isProductOnDevice = deviceHasGooglePlaySubscription(purchases.value, product)
+        Log.d(
+            TAG, "$product - isProductOnServer: $isProductOnServer," +
+                    " isProductOnDevice: $isProductOnDevice"
+        )
         when {
-            isSkuOnDevice && isSkuOnServer -> {
-                Log.e(
-                    TAG, "You cannot buy a SKU that is already owned: $sku. " +
-                        "This is an error in the application trying to use Google Play Billing."
+            isProductOnDevice && isProductOnServer -> {
+                Log.d(
+                    TAG, "User is trying to top up: $product. "
                 )
-                return
             }
-            isSkuOnDevice && !isSkuOnServer -> {
+            isProductOnDevice && !isProductOnServer -> {
                 Log.e(
                     TAG, "The Google Play Billing Library APIs indicate that" +
-                        "this SKU is already owned, but the purchase token is not registered " +
-                        "with the server. There might be an issue registering the purchase token."
+                            "this Product is already owned, but the purchase token is not" +
+                            "registered with the server. There might be an issue registering the " +
+                            "purchase token."
                 )
                 return
             }
-            !isSkuOnDevice && isSkuOnServer -> {
+            !isProductOnDevice && isProductOnServer -> {
                 Log.w(
                     TAG, "WHOA! The server says that the user already owns " +
-                        "this item: $sku. This could be from another Google account. " +
-                        "You should warn the user that they are trying to buy something " +
-                        "from Google Play that they might already have access to from " +
-                        "another purchase, possibly from a different Google account " +
-                        "on another device.\n" +
-                        "You can choose to block this purchase.\n" +
-                        "If you are able to cancel the existing subscription on the server, " +
-                        "you should allow the user to subscribe with Google Play, and then " +
-                        "cancel the subscription after this new subscription is complete. " +
-                        "This will allow the user to seamlessly transition their payment " +
-                        "method from an existing payment method to this Google Play account."
+                            "this item: $product. This could be from another Google account. " +
+                            "You should warn the user that they are trying to buy something " +
+                            "from Google Play that they might already have access to from " +
+                            "another purchase, possibly from a different Google account " +
+                            "on another device.\n" +
+                            "You can choose to block this purchase.\n" +
+                            "If you are able to cancel the existing subscription on the server, " +
+                            "you should allow the user to subscribe with Google Play, and then " +
+                            "cancel the subscription after this new subscription is complete. " +
+                            "This will allow the user to seamlessly transition their payment " +
+                            "method from an existing payment method to this Google Play account."
                 )
                 return
             }
         }
 
-        // Second, determine whether the old SKU can be replaced.
-        // If the old SKU cannot be used, set this value to null and ignore it.
-        val oldSkuToBeReplaced =
-            if (isOldSkuReplaceable(currentSubscriptions, currentPurchases, oldSku)) {
-                oldSku
-            } else {
-                null
-            }
-
-        // Third, create the billing parameters for the purchase.
-        if (sku == oldSkuToBeReplaced) {
-            Log.i(TAG, "Re-subscribe.")
-        } else if (Constants.PREMIUM_SKU == sku && Constants.BASIC_SKU == oldSkuToBeReplaced) {
-            Log.i(TAG, "Upgrade!")
-        } else if (Constants.BASIC_SKU == sku && Constants.PREMIUM_SKU == oldSkuToBeReplaced) {
-            Log.i(TAG, "Downgrade...")
-        } else {
-            Log.i(TAG, "Regular purchase.")
-        }
-        // Create the parameters for the purchase.
-        val skuDetails = skusWithSkuDetails.value?.get(sku) ?: run {
-            Log.e(TAG, "Could not find SkuDetails to make purchase.")
+        // Then get the ProductDetails of the product being purchased.
+        val productDetails = productsWithProductDetails.value?.get(product) ?: run {
+            Log.e(TAG, "Could not find ProductDetails to make purchase.")
             return
         }
-        val billingBuilder = BillingFlowParams.newBuilder().setSkuDetails(skuDetails)
-        // Only set the old SKU parameter if the old SKU is already owned.
-        if (oldSkuToBeReplaced != null && oldSkuToBeReplaced != sku) {
-            purchaseForSku(currentPurchases, oldSkuToBeReplaced)?.apply {
-                billingBuilder.setSubscriptionUpdateParams(
-                    BillingFlowParams.SubscriptionUpdateParams.newBuilder()
-                        .setOldSkuPurchaseToken(purchaseToken)
-                        .build()
-                )
-            }
-        }
-        val billingParams = billingBuilder.build()
 
-        // Send the parameters to the Activity in order to launch the billing flow.
-        buyEvent.postValue(billingParams)
-    }
+        // Retrieve all offers the user is eligible for.
+        val offers =
+            productDetails.subscriptionOfferDetails?.let { offerDetailsList ->
+                retrieveEligibleOffers(
+                    offerDetails = offerDetailsList,
+                    tag = tag
+                )
+            }
 
-    /**
-     * Determine if the old SKU can be replaced.
-     */
-    private fun isOldSkuReplaceable(
-        subscriptions: List<SubscriptionStatus>?,
-        purchases: List<Purchase>?,
-        oldSku: String?
-    ): Boolean {
-        if (oldSku == null) return false
-        val isOldSkuOnServer = serverHasSubscription(subscriptions, oldSku)
-        val isOldSkuOnDevice = deviceHasGooglePlaySubscription(purchases, oldSku)
-        return when {
-            !isOldSkuOnDevice -> {
-                Log.e(
-                    TAG, "You cannot replace a SKU that is NOT already owned: $oldSku. " +
-                        "This is an error in the application trying to use Google Play Billing."
+        //  Get the offer id token of the lowest priced offer.
+        val offerToken = offers?.let { leastPricedOfferToken(it) }
+
+        var oldToken = String()
+        if (isUpOrDowngrade) {
+            // The purchase is for an upgrade or downgrade, therefore the existing purchase's
+            // token is retrieved.
+            for (purchase in purchases.value) {
+                oldToken = purchase.purchaseToken
+            }
+
+            // Use [upDowngradeBillingFlowParamsBuilder] to build the Params that describe the
+            // product to be purchased and the offer to purchase with.
+            val billingParams = offerToken?.let { token ->
+                upOrDowngradeBillingFlowParamsBuilder(
+                    productDetails = productDetails,
+                    offerToken = token,
+                    oldToken = oldToken
                 )
-                false
             }
-            !isOldSkuOnServer -> {
-                Log.i(
-                    TAG, "Refusing to replace the old SKU because it is " +
-                        "not registered with the server. Instead just buy the new SKU as an " +
-                        "original purchase. The old SKU might already " +
-                        "be owned by a different app account, and we should not transfer the " +
-                        "subscription without user permission."
+
+            // Finally, Launch billing flow.
+            buyEvent.postValue(billingParams)
+        } else {
+            // This is a normal purchase for auto-renewing base plans and/or top-up for prepaid
+            // base plans.
+
+            // Use [billingFlowParamsBuilder] to build the Params that describe the product to be
+            // purchased and the offer to purchase with.
+            val billingParams = offerToken?.let { token ->
+                billingFlowParamsBuilder(
+                    productDetails = productDetails,
+                    offerToken = token
                 )
-                false
             }
-            else -> {
-                val subscription = subscriptionForSku(subscriptions, oldSku) ?: return false
-                if (subscription.subAlreadyOwned) {
-                    Log.i(
-                        TAG, "The old subscription is used by a " +
-                            "different app account. However, it was paid for by the same " +
-                            "Google account that is on this device."
-                    )
-                    false
-                } else {
-                    true
-                }
-            }
+
+            // Finally, Launch billing flow.
+            buyEvent.postValue(billingParams)
         }
     }
 
