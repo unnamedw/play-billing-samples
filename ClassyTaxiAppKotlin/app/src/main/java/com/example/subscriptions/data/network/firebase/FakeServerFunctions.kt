@@ -111,6 +111,12 @@ class FakeServerFunctions : ServerFunctions {
 
     override suspend fun registerInstanceId(instanceId: String) = Unit
     override suspend fun unregisterInstanceId(instanceId: String) = Unit
+    override suspend fun acknowledgeSubscription(
+        product: String,
+        purchaseToken: String
+    ): List<SubscriptionStatus> {
+        TODO("Not yet implemented")
+    }
 
     /**
      * Create a local record of a subscription that is already owned by someone else.
