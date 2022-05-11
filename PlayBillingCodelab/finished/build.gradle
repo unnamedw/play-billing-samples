@@ -60,9 +60,6 @@ android {
 }
 
 dependencies {
-    // TODO Remove this dependency after launch of the library.
-    implementation files('../libs/billing-5.0.0.aar')
-
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'androidx.activity:activity-compose:1.4.0'
@@ -94,6 +91,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
 
-    // TODO Uncomment dependency after launch of the library.
-//    implementation "com.android.billingclient:billing-ktx:$billing_version"
+    // Google PLay Billing library.
+    def billing_version = "5.0.0"
+    implementation "com.android.billingclient:billing-ktx:$billing_version"
 }
