@@ -15,14 +15,15 @@
   ~ limitations under the License.
   -->
 
-<layout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
+
         <variable
             name="billingViewModel"
             type="com.example.subscriptions.ui.BillingViewModel" />
+
         <variable
             name="subscriptionViewModel"
             type="com.example.subscriptions.ui.SubscriptionStatusViewModel" />
@@ -89,79 +90,6 @@
                             android:layout_marginBottom="@dimen/activity_vertical_margin"
                             android:onClick="@{() -> billingViewModel.openPlayStoreSubscriptions()}"
                             android:text="@string/google_play_subscriptions"
-                            android:theme="@style/ButtonTheme" />
-
-                    </LinearLayout>
-
-                </androidx.cardview.widget.CardView>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/activity_horizontal_margin"
-                    android:layout_marginEnd="@dimen/activity_horizontal_margin"
-                    android:text="@string/subscription_options_label" />
-
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/activity_horizontal_margin"
-                    android:layout_marginTop="@dimen/activity_vertical_margin"
-                    android:layout_marginEnd="@dimen/activity_horizontal_margin"
-                    android:layout_marginBottom="@dimen/activity_vertical_margin">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:id="@+id/settings_transfer_message"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/activity_horizontal_margin"
-                            android:layout_marginTop="@dimen/activity_vertical_margin"
-                            android:layout_marginEnd="@dimen/activity_horizontal_margin"
-                            android:layout_marginBottom="@dimen/activity_vertical_margin"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/settings_transfer_message_text"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/transfer_message" />
-
-                            <Button
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:onClick="@{() -> subscriptionViewModel.transferSubscriptions()}"
-                                android:text="@string/transfer_button_text"
-                                android:theme="@style/ButtonTheme" />
-
-                        </LinearLayout>
-
-                        <Button
-                            android:id="@+id/subscription_option_basic_button"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/activity_horizontal_margin"
-                            android:layout_marginTop="@dimen/activity_vertical_margin"
-                            android:layout_marginEnd="@dimen/activity_horizontal_margin"
-                            android:layout_marginBottom="@dimen/activity_vertical_margin"
-                            android:onClick="@{() -> billingViewModel.buyBasic()}"
-                            android:text="@string/subscription_option_basic_message"
-                            android:theme="@style/ButtonTheme" />
-
-                        <Button
-                            android:id="@+id/subscription_option_premium_button"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/activity_horizontal_margin"
-                            android:layout_marginTop="@dimen/activity_vertical_margin"
-                            android:layout_marginEnd="@dimen/activity_horizontal_margin"
-                            android:layout_marginBottom="@dimen/activity_vertical_margin"
-                            android:onClick="@{() -> billingViewModel.buyPremium()}"
-                            android:text="@string/subscription_option_premium_message"
                             android:theme="@style/ButtonTheme" />
 
                     </LinearLayout>

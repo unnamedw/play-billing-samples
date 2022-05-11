@@ -270,7 +270,7 @@ class TvMainFragment : DetailsSupportFragment() {
                     Log.d(TAG, "basic subscription found")
 
                     // Update our builder object
-                    subscriptionContentBuilder.subtitle(getString(R.string.basic_message))
+                    subscriptionContentBuilder.subtitle(getString(R.string.basic_auto_message))
                     subscriptionContentBuilder.description(getString(R.string.basic_content_text))
 
                     // Cache the subscription in a global member variable
@@ -282,7 +282,7 @@ class TvMainFragment : DetailsSupportFragment() {
                     Log.d(TAG, "premium subscription found")
 
                     // Update our builder object
-                    subscriptionContentBuilder.subtitle(getString(R.string.premium_message))
+                    subscriptionContentBuilder.subtitle(getString(R.string.premium_auto_message))
                     subscriptionContentBuilder.description(getString(R.string.premium_content_text))
 
                     // Cache the subscription in a global member variable
@@ -377,18 +377,19 @@ class TvMainFragment : DetailsSupportFragment() {
 
             if (action.id == ACTION_SUBSCRIBE_BASIC.toLong()) {
 
+                // TODO(232165789): update with new method calls
                 // Subscribe to basic plan
-                billingViewModel.buyBasic()
+                // billingViewModel.buyBasic()
 
             } else if (action.id == ACTION_SUBSCRIBE_PREMIUM.toLong()) {
 
                 // If a basic subscription exists, handle as an upgrade to premium
                 // else, handle as a new subscription to premium
-                if (basicSubscription != null) {
-                    billingViewModel.buyUpgrade()
-                } else {
-                    billingViewModel.buyPremium()
-                }
+//                if (basicSubscription != null) {
+//                    billingViewModel.buyUpgrade()
+//                } else {
+//                    billingViewModel.buyPremium()
+//                }
 
             } else if (action.id == ACTION_MANAGE_SUBSCRIPTIONS.toLong()) {
                 // Launch Activity to manage subscriptions
