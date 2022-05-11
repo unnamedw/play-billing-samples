@@ -1,18 +1,18 @@
 /**
-* Copyright 2018 Google LLC. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2018 Google LLC. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.example.subscriptions.ui
 import android.util.Log
 import android.view.View
@@ -269,61 +269,11 @@ fun LinearLayout.updatePremiumViews(subscriptions: List<SubscriptionStatus>?) {
  *
  * When the subscription changes, the binding adapter triggers this view in the layout XML.
  * See the layout XML files for the app:updateSettingsViews attribute.
+ * TODO(232165789): update method to update settings view
  */
 @BindingAdapter("updateSettingsViews")
 fun LinearLayout.updateSettingsViews(subscriptions: List<SubscriptionStatus>?) {
-    val premiumButton = findViewById<Button>(R.id.subscription_option_premium_button)
-    val basicButton = findViewById<Button>(R.id.subscription_option_basic_button)
-    val settingsTransferMessage = findViewById<View>(R.id.settings_transfer_message)
-    val settingsTransferMessageText = findViewById<TextView>(R.id.settings_transfer_message_text)
-    // Set default button text: it might be overridden based on the subscription state.
-    premiumButton.text = resources.getString(R.string.subscription_option_premium_message)
-    basicButton.text = resources.getString(R.string.subscription_option_basic_message)
-    // Update based on subscription information.
-    var basicRequiresTransfer = false
-    var premiumRequiresTransfer = false
-    subscriptions?.forEach { subscription ->
-        when (subscription.product) {
-            Constants.BASIC_PRODUCT -> {
-                basicButton.text =
-                    basicTextForSubscription(resources, subscription)
-                if (isTransferRequired(subscription)) {
-                    basicRequiresTransfer = true
-                }
-            }
-            Constants.PREMIUM_PRODUCT -> {
-                premiumButton.text =
-                    premiumTextForSubscription(resources, subscription)
-                if (isTransferRequired(subscription)) {
-                    premiumRequiresTransfer = true
-                }
-            }
-        }
-    }
-    val message = when {
-        basicRequiresTransfer && premiumRequiresTransfer -> {
-            val basicName = resources.getString(R.string.basic_button_text)
-            val premiumName = resources.getString(R.string.premium_button_text)
-            resources.getString(R.string.transfer_message_with_two_products, basicName, premiumName)
-        }
-        basicRequiresTransfer -> {
-            val basicName = resources.getString(R.string.basic_button_text)
-            resources.getString(R.string.transfer_message_with_product, basicName)
-        }
-        premiumRequiresTransfer -> {
-            val premiumName = resources.getString(R.string.premium_button_text)
-            resources.getString(R.string.transfer_message_with_product, premiumName)
-        }
-        else -> null
-    }
-    if (message != null) {
-        Log.d(TAG, "transfer VISIBLE")
-        settingsTransferMessage.visibility = View.VISIBLE
-        settingsTransferMessageText.text = message
-    } else {
-        settingsTransferMessage.visibility = View.GONE
-        settingsTransferMessageText.text = resources.getString(R.string.transfer_message)
-    }
+
 }
 
 /**
