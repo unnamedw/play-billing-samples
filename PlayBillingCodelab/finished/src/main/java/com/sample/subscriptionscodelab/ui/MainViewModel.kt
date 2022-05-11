@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 
 /**
  * The [AndroidViewModel] implementation combines all flows from the repo into a single one
- * that is collected in the [Compose] UI.
+ * that is collected in the Composable.
  *
  * It, also, has helper methods that are used to launch the Google Play Billing purchase flow.
  *

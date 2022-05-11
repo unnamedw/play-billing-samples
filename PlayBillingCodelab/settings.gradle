@@ -3,9 +3,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        jcenter() // Warning: this repository is going to shut down soon
     }
 }
-rootProject.name = "Basics Codelab"
-include ':start'
-include ':finished'
+rootProject.name = "Play Billing Codelab"
+include ':start', ':finished'

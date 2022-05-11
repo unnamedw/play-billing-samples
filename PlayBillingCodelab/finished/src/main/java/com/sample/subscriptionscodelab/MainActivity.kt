@@ -19,11 +19,11 @@ package com.sample.subscriptionscodelab
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
 import com.sample.subscriptionscodelab.Constants.MONTHLY_BASIC_PLANS_TAG
 import com.sample.subscriptionscodelab.Constants.MONTHLY_PREMIUM_PLANS_TAG
@@ -34,23 +34,16 @@ import com.sample.subscriptionscodelab.Constants.YEARLY_PREMIUM_PLANS_TAG
 import com.sample.subscriptionscodelab.ui.ButtonModel
 import com.sample.subscriptionscodelab.ui.MainState
 import com.sample.subscriptionscodelab.ui.MainViewModel
-import com.sample.subscriptionscodelab.ui.MainViewModelFactory
 import com.sample.subscriptionscodelab.ui.composable.LoadingScreen
 import com.sample.subscriptionscodelab.ui.composable.SubscriptionNavigationComponent
 import com.sample.subscriptionscodelab.ui.composable.UserProfile
 import com.sample.subscriptionscodelab.ui.theme.BasicsCodelabTheme
 
 class MainActivity : ComponentActivity() {
+    private val viewModel by viewModels<MainViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
-
-        val viewModel =
-            ViewModelProvider(
-                this,
-                MainViewModelFactory(application)
-            )[MainViewModel::class.java]
 
         setContent {
             BasicsCodelabTheme {
