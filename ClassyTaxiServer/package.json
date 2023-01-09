@@ -16,7 +16,7 @@
     "express": "^4.17.1",
     "firebase-admin": "^10.0.2",
     "firebase-functions": "^3.13.0",
-    "googleapis": "^67.0.0"
+    "googleapis": "^110.0.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.14",
