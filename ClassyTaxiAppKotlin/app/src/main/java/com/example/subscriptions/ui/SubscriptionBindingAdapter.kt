@@ -158,7 +158,7 @@ fun LinearLayout.updateHomeViews(subscriptions: List<SubscriptionStatus>?) {
             paywallMessage.visibility = View.GONE // Paywall gone.
         }
         if (subscription.isBasicContent && !isPremiumContent(subscription) && !subscription.isPrepaid) {
-            Log.d(TAG, "Downgrade VISIBLE")
+            Log.d(TAG, "Basic VISIBLE")
             basicMessage.visibility = View.VISIBLE
             paywallMessage.visibility = View.GONE // Paywall gone.
         }

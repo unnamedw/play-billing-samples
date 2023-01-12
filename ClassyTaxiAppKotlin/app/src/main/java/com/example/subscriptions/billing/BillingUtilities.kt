@@ -161,4 +161,4 @@ fun isTransferRequired(subscription: SubscriptionStatus?) =
 val SubscriptionStatus?.isPrepaid: Boolean
     get() =
         this != null &&
-                willRenew
+                !willRenew
