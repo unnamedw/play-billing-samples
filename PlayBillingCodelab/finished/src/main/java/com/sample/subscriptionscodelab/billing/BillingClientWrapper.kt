@@ -123,11 +123,10 @@ class BillingClientWrapper(
                     .setProductType(BillingClient.ProductType.SUBS)
                     .build()
             )
-
-            params.setProductList(productList).let { productDetailsParams ->
-                Log.i(TAG, "queryProductDetailsAsync")
-                billingClient.queryProductDetailsAsync(productDetailsParams.build(), this)
-            }
+        }
+        params.setProductList(productList).let { productDetailsParams ->
+            Log.i(TAG, "queryProductDetailsAsync")
+            billingClient.queryProductDetailsAsync(productDetailsParams.build(), this)
         }
     }
 
