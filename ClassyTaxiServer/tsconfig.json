@@ -2,7 +2,8 @@
   "compilerOptions": {
     "lib": [
       "es6",
-      "esnext.asynciterable"
+      "esnext.asynciterable",
+      "DOM",
     ],
     "module": "commonjs",
     "noImplicitReturns": true,
