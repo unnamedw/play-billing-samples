@@ -35,20 +35,6 @@ export const playBilling = PlayBilling.fromServiceAccount(serviceAccountPlay, fi
 export const instanceIdManager = new InstanceIdManager(firebase.app());
 export const contentManager = new ContentManager();
 
-// Shared verification functions
-// Verify if the user making the call has signed in
-export function verifyAuthentication(context: functions.https.CallableContext) {
-  if (!context.auth)
-    throw new functions.https.HttpsError('unauthenticated', 'Unauthorized Access');
-}
-
-// Verify if the user making the call has a valid instanceId token
-export function verifyInstanceIdToken(context: functions.https.CallableContext) {
-  if (!context.instanceIdToken) {
-    throw new functions.https.HttpsError('invalid-argument', 'No Instance Id specified')
-  }
-}
-
 /**
  * Return a Promise that verifies Firebase Auth ID Token before returning a DecodedIdToken.
  *
@@ -91,7 +77,7 @@ export function verifyFirebaseAuthIdToken(request: functions.Request, response: 
  *
  * @return Promise that returns a boolean or throws HttpsError.
  */
-export function verifyInstanceIdTokenV2(request: functions.Request, response: functions.Response): Promise<boolean> {
+export function verifyInstanceIdToken(request: functions.Request, response: functions.Response): Promise<boolean> {
   // Instance ID/Registration token is included in a HTTP request's body.
   const instanceIdToken = request.body.instanceId;
   console.log('Instance id is ' + instanceIdToken);

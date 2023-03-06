@@ -14,32 +14,32 @@ import retrofit2.http.PUT
 interface SubscriptionStatusApiCall {
 
     // Fetch Basic content.
-    @GET("content_basic_v2")
+    @GET("content_basic")
     suspend fun fetchBasicContent(): ContentResource
 
     // Fetch Premium content.
-    @GET("content_premium_v2")
+    @GET("content_premium")
     suspend fun fetchPremiumContent(): ContentResource
 
     // Fetch Subscription Status.
-    @GET("subscription_status_v2")
+    @GET("subscription_status")
     suspend fun fetchSubscriptionStatus(): Response<SubscriptionStatusList>
 
     // Registers Instance ID for Firebase Cloud Messaging.
-    @PUT("instanceId_register_v2")
+    @PUT("instanceId_register")
     suspend fun registerInstanceID(@Body instanceId: Map<String, String>): String
 
     // Unregisters Instance ID for Firebase Cloud Messaging.
-    @PUT("instanceId_unregister_v2")
+    @PUT("instanceId_unregister")
     suspend fun unregisterInstanceID(@Body instanceId: Map<String, String>): String
 
     // Registers subscription status to the server and get updated list of subscriptions
-    @PUT("subscription_register_v2")
+    @PUT("subscription_register")
     suspend fun registerSubscription(@Body registerStatus: SubscriptionStatus):
             Response<SubscriptionStatusList>
 
     // Transfers subscription status to another account.
-    @PUT("subscription_transfer_v2")
+    @PUT("subscription_transfer")
     suspend fun transferSubscription(@Body transferStatus: SubscriptionStatus)
             : SubscriptionStatusList
 

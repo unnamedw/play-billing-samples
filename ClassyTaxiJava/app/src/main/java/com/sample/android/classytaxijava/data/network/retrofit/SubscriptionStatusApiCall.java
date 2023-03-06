@@ -31,13 +31,13 @@ import retrofit2.http.PUT;
  * Retrofit API Interfaces.
  */
 public interface SubscriptionStatusApiCall {
-    public static final String BASIC_CONTENT = "content_basic_v2";
-    public static final String PREMIUM_CONTENT = "content_premium_v2";
-    public static final String SUBSCRIPTION_STATUS = "subscription_status_v2";
-    public static final String REGISTER_SUBSCRIPTION = "subscription_register_v2";
-    public static final String TRANSFER_SUBSCRIPTION = "subscription_transfer_v2";
-    public static final String REGISTER_INSTANCE_ID = "instanceId_register_v2";
-    public static final String UNREGISTER_INSTANCE_ID = "instanceId_unregister_v2";
+    public static final String BASIC_CONTENT = "content_basic";
+    public static final String PREMIUM_CONTENT = "content_premium";
+    public static final String SUBSCRIPTION_STATUS = "subscription_status";
+    public static final String REGISTER_SUBSCRIPTION = "subscription_register";
+    public static final String TRANSFER_SUBSCRIPTION = "subscription_transfer";
+    public static final String REGISTER_INSTANCE_ID = "instanceId_register";
+    public static final String UNREGISTER_INSTANCE_ID = "instanceId_unregister";
 
     // Fetch Basic content.
     @GET(BASIC_CONTENT)

@@ -16,7 +16,7 @@
 
 import * as functions from 'firebase-functions';
 import { SubscriptionStatus } from '../../model/SubscriptionStatus';
-import { playBilling, verifyAuthentication, contentManager, verifyFirebaseAuthIdToken, sendHttpsError, verifyInstanceIdToken } from '../shared'
+import { playBilling, contentManager, verifyFirebaseAuthIdToken, sendHttpsError } from '../shared'
 
 const BASIC_PLAN_PRODUCT = functions.config().app.basic_plan_product;
 const PREMIUM_PLAN_PRODUCT = functions.config().app.premium_plan_product;
@@ -27,25 +27,16 @@ const PREMIUM_PLAN_PRODUCT = functions.config().app.premium_plan_product;
 */
 
 
-/* Callable that serves basic content to the client
-*/
-export const content_basic = functions.https.onCall(async (data, context) => {
-  verifyAuthentication(context);
-  await verifySubscriptionOwnershipAsync(context, [BASIC_PLAN_PRODUCT, PREMIUM_PLAN_PRODUCT]);
-
-  return contentManager.getBasicContent()
-})
-
 /* HTTPS request that serves basic content to the client.
 *
 * @param {Request} request
 * @param {Response} response
 */
-export const content_basic_v2 = functions.https.onRequest(async (request, response) => {
+export const content_basic = functions.https.onRequest(async (request, response) => {
   return verifyFirebaseAuthIdToken(request, response)
     .then(async (decodedToken) => {
       const uid = decodedToken.uid;
-      await verifySubscriptionOwnershipAsyncV2(uid, [BASIC_PLAN_PRODUCT, PREMIUM_PLAN_PRODUCT]);
+      await verifySubscriptionOwnershipAsync(uid, [BASIC_PLAN_PRODUCT, PREMIUM_PLAN_PRODUCT]);
 
       const data = contentManager.getBasicContent();
       response.send(data);
@@ -54,25 +45,16 @@ export const content_basic_v2 = functions.https.onRequest(async (request, respon
     });
 });
 
-/* Callable that serves premium content to the client
-*/
-export const content_premium = functions.https.onCall(async (data, context) => {
-  verifyAuthentication(context);
-  await verifySubscriptionOwnershipAsync(context, [PREMIUM_PLAN_PRODUCT]);
-
-  return contentManager.getPremiumContent()
-});
-
 /* HTTPS request that serves premium content to the client
 *
 * @param {Request} request
 * @param {Response} response
 */
-export const content_premium_v2 = functions.https.onRequest(async (request, response) => {
+export const content_premium = functions.https.onRequest(async (request, response) => {
   return verifyFirebaseAuthIdToken(request, response)
     .then(async (decodedToken) => {
       const uid = decodedToken.uid;
-      await verifySubscriptionOwnershipAsyncV2(uid, [PREMIUM_PLAN_PRODUCT]);
+      await verifySubscriptionOwnershipAsync(uid, [PREMIUM_PLAN_PRODUCT]);
 
       const data = contentManager.getPremiumContent();
       response.send(data);
@@ -83,7 +65,7 @@ export const content_premium_v2 = functions.https.onRequest(async (request, resp
 
 /* Util function that verifies if current user owns at least one active purchases listed in products
 */
-async function verifySubscriptionOwnershipAsyncV2(uid: string, products: Array<string>): Promise<void> {
+async function verifySubscriptionOwnershipAsync(uid: string, products: Array<string>): Promise<void> {
   const purchaseList = await playBilling.users().queryCurrentSubscriptions(uid)
     .catch(err => {
       console.error(err.message);
@@ -95,25 +77,6 @@ async function verifySubscriptionOwnershipAsyncV2(uid: string, products: Array<s
   const doesUserHaveTheProduct = subscriptionStatusList.some(subscription => ((Object.keys(subscription).length > 0) && (subscription.isEntitlementActive)));
 
   if (!doesUserHaveTheProduct) {
-    throw new functions.https.HttpsError('permission-denied', 'Valid subscription not found');
-  }
-}
-
-/*Util function that verifies if current user owns at least one active purchases listed in products
-*
-* @param {string} uid
-* @param {Array<string>} products
-* @throws {HttpsError}
-*/
-async function verifySubscriptionOwnershipAsync(context: functions.https.CallableContext, products: Array<string>): Promise<void> {
-  const purchaseList = await playBilling.users().queryCurrentSubscriptions(context.auth.uid)
-    .catch(err => {
-      console.error(err.message);
-      throw new functions.https.HttpsError('internal', 'Internal server error');
-    });
-
-  const isUserHavingTheProduct = purchaseList.some(purchase => ((products.indexOf(purchase.product) > -1) && (purchase.isEntitlementActive())));
-  if (!isUserHavingTheProduct) {
     throw new functions.https.HttpsError('permission-denied', 'Valid subscription not found');
   }
 }

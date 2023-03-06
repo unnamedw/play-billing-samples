@@ -15,36 +15,19 @@
  */
 
 import * as functions from 'firebase-functions';
-import { verifyAuthentication, verifyFirebaseAuthIdToken, verifyInstanceIdToken, verifyInstanceIdTokenV2, instanceIdManager, sendHttpsError } from '../shared'
+import { verifyFirebaseAuthIdToken, verifyInstanceIdToken, instanceIdManager, sendHttpsError } from '../shared'
 
 /* This file contains implementation of functions related to instanceId,
  * which are used to send push notifications to client devices.
  */
 
-/* Register a device instanceId to an user. This is called when the user sign-in in a device
- */
-export const instanceId_register = functions.https.onCall(async (data, context) => {
-  verifyAuthentication(context);
-  verifyInstanceIdToken(context);
-
-  try {
-    await instanceIdManager.registerInstanceId(
-      context.auth.uid,
-      context.instanceIdToken)
-
-    return {}
-  } catch (err) {
-    console.error(err.message);
-    throw err;
-  }
-})
 
 /* Register a device instanceId to an user. This is called when the user sign-in in a device
  */
-export const instanceId_register_v2 = functions.https.onRequest(async (request, response) => {
+export const instanceId_register = functions.https.onRequest(async (request, response) => {
   return verifyFirebaseAuthIdToken(request, response)
     .then(async (decodedToken) => {
-      if (await verifyInstanceIdTokenV2(request, response)) {
+      if (await verifyInstanceIdToken(request, response)) {
         console.log("Instance verification passed");
         const uid = decodedToken.uid;
         const instanceId = request.body.instanceId;
@@ -61,28 +44,10 @@ export const instanceId_register_v2 = functions.https.onRequest(async (request, 
 
 /* Unregister a device instanceId to an user. This is called when the user sign-out in a device
  */
-export const instanceId_unregister = functions.https.onCall(async (data, context) => {
-  verifyAuthentication(context);
-  verifyInstanceIdToken(context);
-
-  try {
-    await instanceIdManager.unregisterInstanceId(
-      context.auth.uid,
-      context.instanceIdToken)
-
-    return {}
-  } catch (err) {
-    console.error(err.message);
-    throw err;
-  }
-})
-
-/* Unregister a device instanceId to an user. This is called when the user sign-out in a device
- */
-export const instanceId_unregister_v2 = functions.https.onRequest(async (request, response) => {
+export const instanceId_unregister = functions.https.onRequest(async (request, response) => {
   return verifyFirebaseAuthIdToken(request, response)
     .then(async (decodedToken) => {
-      if (await verifyInstanceIdTokenV2(request, response)) {
+      if (await verifyInstanceIdToken(request, response)) {
         console.log("Instance verification passed");
         const uid = decodedToken.uid;
         const instanceId = request.body.instanceId;
