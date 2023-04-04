@@ -29,7 +29,6 @@ import com.example.subscriptions.data.SubscriptionStatus
 import kotlinx.coroutines.flow.StateFlow
 
 
-
 class BillingViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
@@ -40,14 +39,18 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
     /**
      * ProductDetails for all known Products.
      */
-    private val productsWithProductDetails =
-        (application as SubApp).billingClientLifecycle.productsWithProductDetails
+    private val premiumSubProductWithProductDetails =
+        (application as SubApp).billingClientLifecycle.premiumSubProductWithProductDetails
+
+    private val basicSubProductWithProductDetails =
+        (application as SubApp).billingClientLifecycle.basicSubProductWithProductDetails
 
 
     /**
      * Subscriptions record according to the server.
      */
-    private val subscriptions: StateFlow<List<SubscriptionStatus>> = (application as SubApp).repository.subscriptions
+    private val subscriptions: StateFlow<List<SubscriptionStatus>> =
+        (application as SubApp).repository.subscriptions
 
     /**
      * Send an event when the Activity needs to buy something.
@@ -73,10 +76,12 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
                 // If we just have a basic subscription, open the basic Product.
                 openPlayStoreSubscriptionsEvent.postValue(Constants.BASIC_PRODUCT)
             }
+
             !hasBasic && hasPremium -> {
                 // If we just have a premium subscription, open the premium Product.
                 openPlayStoreSubscriptionsEvent.postValue(Constants.PREMIUM_PRODUCT)
             }
+
             else -> {
                 // If we do not have an active subscription,
                 // or if we have multiple subscriptions, open the default subscription center.
@@ -96,6 +101,7 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
             when {
                 serverHasSubscription(subscriptionStatusList, Constants.PREMIUM_PRODUCT) ->
                     openProductPlayStoreSubscriptions(Constants.PREMIUM_PRODUCT)
+
                 serverHasSubscription(subscriptionStatusList, Constants.BASIC_PRODUCT) ->
                     openProductPlayStoreSubscriptions(Constants.BASIC_PRODUCT)
             }
@@ -155,7 +161,9 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         ).setSubscriptionUpdateParams(
             BillingFlowParams.SubscriptionUpdateParams.newBuilder()
                 .setOldPurchaseToken(oldToken)
-                .setReplaceProrationMode(BillingFlowParams.ProrationMode.IMMEDIATE_AND_CHARGE_FULL_PRICE)
+                .setReplaceProrationMode(
+                    BillingFlowParams.ProrationMode.IMMEDIATE_AND_CHARGE_FULL_PRICE
+                )
                 .build()
         ).build()
     }
@@ -179,7 +187,7 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         var leastPricedOffer: ProductDetails.SubscriptionOfferDetails
         var lowestPrice = Int.MAX_VALUE
 
-        if (!offerDetails.isNullOrEmpty()) {
+        if (offerDetails.isNotEmpty()) {
             for (offer in offerDetails) {
                 for (price in offer.pricingPhases.pricingPhaseList) {
                     if (price.priceAmountMicros < lowestPrice) {
@@ -222,33 +230,37 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
      *
      * @param tag String representing tags associated with offers and base plans.
      * @param product Product being purchased.
-     * @param upDowngrade Boolean indicating wether the purchase is an upgrade or downgrade and
+     * @param upDowngrade Boolean indicating if the purchase is an upgrade or downgrade and
      * when converting from one base plan to another.
      *
      */
     fun buyBasePlans(tag: String, product: String, upDowngrade: Boolean) {
-        // First, determine whether the Product can be purchased.
         val isProductOnServer = serverHasSubscription(subscriptions.value, product)
         val isProductOnDevice = deviceHasGooglePlaySubscription(purchases.value, product)
         Log.d(
             "Billing", "$product - isProductOnServer: $isProductOnServer," +
                     " isProductOnDevice: $isProductOnDevice"
         )
+
         when {
             isProductOnDevice && isProductOnServer -> {
                 Log.d(
-                    "Billing", "User is trying to top up: $product. "
+                    "Billing", "User is trying to top up prepaid subscription: $product. "
                 )
             }
+
             isProductOnDevice && !isProductOnServer -> {
-                Log.e(
+                Log.d(
                     "Billing", "The Google Play Billing Library APIs indicate that" +
-                            "this Product is already owned, but the purchase token is not registered " +
-                            "with the server. There might be an issue registering the " +
-                            "purchase token."
+                            "this Product is already owned, but the purchase token is not " +
+                            "registered with the server. There might be an issue registering the " +
+                            "purchase token, but it could also be that the user is converting " +
+                            "the same product from one base plan to another. For example, " +
+                            "converting from a monthly base plan to an annual base plan, or " +
+                            "converting from a prepaid base plan to a monthly base plan. "
                 )
-                return
             }
+
             !isProductOnDevice && isProductOnServer -> {
                 Log.w(
                     "Billing", "WHOA! The server says that the user already owns " +
@@ -268,63 +280,103 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
             }
         }
 
-        // Then get the ProductDetails of the product being purchased.
-        val productDetails = productsWithProductDetails.value?.get(product) ?: run {
-            Log.e(TAG, "Could not find ProductDetails to make purchase.")
+        val basicSubProductDetails = basicSubProductWithProductDetails.value ?: run {
+            Log.e(TAG, "Could not find Basic product details.")
             return
         }
 
-        // Retrieve all offers the user is eligible for.
-        val offers =
-            productDetails.subscriptionOfferDetails?.let { offerDetailsList ->
+        val basicOffers =
+            basicSubProductDetails.subscriptionOfferDetails?.let { offerDetailsList ->
                 retrieveEligibleOffers(
                     offerDetails = offerDetailsList,
                     tag = tag
                 )
             }
 
-        //  Get the offer id token of the lowest priced offer.
-        val offerToken = offers?.let { leastPricedOfferToken(it) }
-
-        var oldToken = ""
-        if (upDowngrade) {
-            // The purchase is for an upgrade or downgrade, therefore the existing purchase's
-            // token is retrieved.
-            for (purchase in purchases.value) {
-                oldToken = purchase.purchaseToken
-            }
-
-            // Use [upDowngradeBillingFlowParamsBuilder] to build the Params that describe the
-            // product to be purchased and the offer to purchase with.
-            val billingParams = offerToken?.let { token ->
-                upDowngradeBillingFlowParamsBuilder(
-                    productDetails = productDetails,
-                    offerToken = token,
-                    oldToken = oldToken
-                )
-            }
-
-            // Finally, Launch billing flow.
-            buyEvent.postValue(billingParams)
-        } else {
-            // This is a normal purchase for auto-renewing base plans and/or top-up for prepaid
-            // base plans.
-
-            // Use [billingFlowParamsBuilder] to build the Params that describe the product to be
-            // purchased and the offer to purchase with.
-            val billingParams = offerToken?.let { token ->
-                billingFlowParamsBuilder(
-                    productDetails = productDetails,
-                    offerToken = token
-                )
-            }
-
-            // Finally, Launch billing flow.
-            buyEvent.postValue(billingParams)
+        val premiumSubProductDetails = premiumSubProductWithProductDetails.value ?: run {
+            Log.e(TAG, "Could not find Premium product details.")
+            return
         }
+
+        val premiumOffers =
+            premiumSubProductDetails.subscriptionOfferDetails?.let { offerDetailsList ->
+                retrieveEligibleOffers(
+                    offerDetails = offerDetailsList,
+                    tag = tag
+                )
+            }
+
+        val offerToken: String
+
+        when (product) {
+            Constants.BASIC_PRODUCT -> {
+                offerToken = basicOffers?.let { leastPricedOfferToken(it) }.toString()
+                launchFlow(upDowngrade, offerToken, basicSubProductDetails)
+            }
+
+            Constants.PREMIUM_PRODUCT -> {
+                offerToken = premiumOffers?.let { leastPricedOfferToken(it) }.toString()
+                launchFlow(upDowngrade, offerToken, premiumSubProductDetails)
+            }
+        }
+    }
+
+    /**
+     * Launches the billing flow.
+     * A user can only have one subscription purchase on the device at a time. If the user
+     * has more than one subscription purchase on the device, the app should not allow the
+     * user to purchase another subscription.
+     *
+     * @param upDowngrade Boolean indicating if the purchase is an upgrade or downgrade and
+     * when converting from one base plan to another.
+     * @param offerToken String representing the offer token of the lowest priced offer.
+     * @param productDetails ProductDetails of the product being purchased.
+     *
+     */
+    private fun launchFlow(
+        upDowngrade: Boolean,
+        offerToken: String,
+        productDetails: ProductDetails
+    ) {
+
+        val currentSubscriptionPurchaseCount = purchases.value.count {
+            it.products.contains(Constants.BASIC_PRODUCT) ||
+                    it.products.contains(Constants.PREMIUM_PRODUCT)
+        }
+
+        if (currentSubscriptionPurchaseCount > EXPECTED_SUBSCRIPTION_PURCHASE_LIST_SIZE) {
+            Log.e(TAG, "There are more than one subscription purchases on the device.")
+            return
+
+            TODO(
+                "Handle this case better, such as by showing a dialog to the user or by " +
+                        "programmatically getting the correct purchase token."
+            )
+        }
+
+        val oldToken = purchases.value.filter {
+            it.products.contains(Constants.BASIC_PRODUCT) ||
+                    it.products.contains(Constants.PREMIUM_PRODUCT)
+        }.firstOrNull { it.purchaseToken.isNotEmpty() }?.purchaseToken ?: ""
+
+
+        val billingParams: BillingFlowParams = if (upDowngrade) {
+            upDowngradeBillingFlowParamsBuilder(
+                productDetails = productDetails,
+                offerToken = offerToken,
+                oldToken = oldToken
+            )
+        } else {
+            billingFlowParamsBuilder(
+                productDetails = productDetails,
+                offerToken = offerToken
+            )
+        }
+        buyEvent.postValue(billingParams)
     }
 
     companion object {
         const val TAG = "BillingViewModel"
+        const val EXPECTED_SUBSCRIPTION_PURCHASE_LIST_SIZE = 1
     }
 }

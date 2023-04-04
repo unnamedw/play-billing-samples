@@ -62,7 +62,9 @@ class BillingClientLifecycle private constructor(
     /**
      * ProductDetails for all known products.
      */
-    val productsWithProductDetails = MutableLiveData<Map<String, ProductDetails>>()
+    val premiumSubProductWithProductDetails = MutableLiveData<ProductDetails?>()
+
+    val basicSubProductWithProductDetails = MutableLiveData<ProductDetails?>()
 
     /**
      * Instantiate a new BillingClient instance.
@@ -118,7 +120,8 @@ class BillingClientLifecycle private constructor(
      *
      * queryProductDetails uses method calls from GPBL 5.0.0. PBL5, released in May 2022,
      * is backwards compatible with previous versions.
-     * To learn more about this you can read https://developer.android.com/google/play/billing/compatibility
+     * To learn more about this you can read:
+     * https://developer.android.com/google/play/billing/compatibility
      */
     private fun queryProductDetails() {
         Log.d(TAG, "queryProductDetails")
@@ -144,12 +147,14 @@ class BillingClientLifecycle private constructor(
     /**
      * Receives the result from [queryProductDetails].
      *
-     * Store the ProductDetails and post them in the [productsWithProductDetails]. This allows other parts
-     * of the app to use the [ProductDetails] to show product information and make purchases.
+     * Store the ProductDetails and post them in the [basicSubProductWithProductDetails] and
+     * [premiumSubProductWithProductDetails]. This allows other parts of the app to use the
+     *  [ProductDetails] to show product information and make purchases.
      *
      * onProductDetailsResponse() uses method calls from GPBL 5.0.0. PBL5, released in May 2022,
      * is backwards compatible with previous versions.
-     * To learn more about this you can read https://developer.android.com/google/play/billing/compatibility
+     * To learn more about this you can read:
+     * https://developer.android.com/google/play/billing/compatibility
      */
     override fun onProductDetailsResponse(
         billingResult: BillingResult,
@@ -159,50 +164,63 @@ class BillingClientLifecycle private constructor(
         val debugMessage = billingResult.debugMessage
         when {
             response.isOk -> {
-                val expectedProductDetailsCount = LIST_OF_PRODUCTS.size
-                if (productDetailsList.isNullOrEmpty()) {
-                    productsWithProductDetails.postValue(emptyMap())
-                    Log.e(
-                        TAG, "onProductDetailsResponse: " +
-                                "Expected ${expectedProductDetailsCount}, " +
-                                "Found null ProductDetails. " +
-                                "Check to see if the products you requested are correctly published " +
-                                "in the Google Play Console."
-                    )
-                } else {
-                    productsWithProductDetails.postValue(HashMap<String, ProductDetails>().apply {
-                        for (productDetails in productDetailsList) {
-                            put(productDetails.productId, productDetails)
-                        }
-                    }.also { postedValue ->
-                        val productDetailsCount = postedValue.size
-                        if (productDetailsCount == expectedProductDetailsCount) {
-                            Log.i(
-                                TAG,
-                                "onProductDetailsResponse: Found $productDetailsCount ProductDetails"
-                            )
-                        } else {
-                            Log.e(
-                                TAG, "onProductDetailsResponse: " +
-                                        "Expected ${expectedProductDetailsCount}, " +
-                                        "Found $productDetailsCount ProductDetails. " +
-                                        "Check to see if the products you requested are correctly published " +
-                                        "in the Google Play Console."
-                            )
-                        }
-                        Log.wtf(TAG, "productsWithProductDetails: $productsWithProductDetails")
-                    }
-                    )
-                }
+                processProductDetails(productDetailsList)
             }
+
             response.isTerribleFailure -> {
                 // These response codes are not expected.
                 Log.wtf(TAG, "onProductDetailsResponse: ${response.code} $debugMessage")
             }
+
             else -> {
                 Log.e(TAG, "onProductDetailsResponse: ${response.code} $debugMessage")
             }
 
+        }
+    }
+
+    /**
+     * This method is used to process the product details list returned by the [BillingClient]and
+     * post the details to the [basicSubProductWithProductDetails] and
+     * [premiumSubProductWithProductDetails] live data.
+     *
+     * @param productDetailsList The list of product details.
+     *
+     */
+    private fun processProductDetails(productDetailsList: MutableList<ProductDetails>) {
+        val expectedProductDetailsCount = LIST_OF_PRODUCTS.size
+        if (productDetailsList.isEmpty()) {
+            Log.e(
+                TAG, "processProductDetails: " +
+                        "Expected ${expectedProductDetailsCount}, " +
+                        "Found null ProductDetails. " +
+                        "Check to see if the products you requested are correctly published " +
+                        "in the Google Play Console."
+            )
+            postProductDetails(emptyList())
+        } else {
+            postProductDetails(productDetailsList)
+        }
+    }
+
+    /**
+     * This method is used to post the product details to the [basicSubProductWithProductDetails]
+     * and [premiumSubProductWithProductDetails] live data.
+     *
+     * @param productDetailsList The list of product details.
+     *
+     */
+    private fun postProductDetails(productDetailsList: List<ProductDetails>) {
+        productDetailsList.forEach { productDetails ->
+            when (productDetails.productType) {
+                BillingClient.ProductType.SUBS -> {
+                    if (productDetails.productId == Constants.PREMIUM_PRODUCT) {
+                        premiumSubProductWithProductDetails.postValue(productDetails)
+                    } else if (productDetails.productId == Constants.BASIC_PRODUCT) {
+                        basicSubProductWithProductDetails.postValue(productDetails)
+                    }
+                }
+            }
         }
     }
 
@@ -254,16 +272,19 @@ class BillingClientLifecycle private constructor(
                     processPurchases(purchases)
                 }
             }
+
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 Log.i(TAG, "onPurchasesUpdated: User canceled the purchase")
             }
+
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
                 Log.i(TAG, "onPurchasesUpdated: The user already owns this item")
             }
+
             BillingClient.BillingResponseCode.DEVELOPER_ERROR -> {
                 Log.e(
-                    TAG, "onPurchasesUpdated: Developer error means that Google Play " +
-                            "does not recognize the configuration. If you are just getting started, " +
+                    TAG, "onPurchasesUpdated: Developer error means that Google Play does " +
+                            "not recognize the configuration. If you are just getting started, " +
                             "make sure you have configured the application correctly in the " +
                             "Google Play Console. The product ID must match and the APK you " +
                             "are using must be signed with release keys."
@@ -319,7 +340,8 @@ class BillingClientLifecycle private constructor(
         }
         Log.d(
             TAG,
-            "logAcknowledgementStatus: acknowledged=$acknowledgedCounter unacknowledged=$unacknowledgedCounter"
+            "logAcknowledgementStatus: acknowledged=$acknowledgedCounter " +
+                    "unacknowledged=$unacknowledgedCounter"
         )
     }
 
@@ -378,11 +400,13 @@ class BillingClientLifecycle private constructor(
                     Log.i(TAG, "Acknowledge success - token: $purchaseToken")
                     return true
                 }
+
                 response.canFailGracefully -> {
                     // Ignore the error
                     Log.i(TAG, "Token $purchaseToken is already owned.")
                     return true
                 }
+
                 response.isRecoverableError -> {
                     // Retry to ack because these errors may be recoverable.
                     val duration = 500L * 2.0.pow(trial).toLong()
@@ -390,14 +414,19 @@ class BillingClientLifecycle private constructor(
                     if (trial < MAX_RETRY_ATTEMPT) {
                         Log.w(
                             TAG,
-                            "Retrying($trial) to acknowledge for token $purchaseToken - code: ${bResult!!.responseCode}, message: ${bResult!!.debugMessage}"
+                            "Retrying($trial) to acknowledge for token $purchaseToken - " +
+                                    "code: ${bResult!!.responseCode}, message: " +
+                                    bResult!!.debugMessage
                         )
                     }
                 }
+
                 response.isNonrecoverableError || response.isTerribleFailure -> {
                     Log.e(
                         TAG,
-                        "Failed to acknowledge for token $purchaseToken - code: ${bResult!!.responseCode}, message: ${bResult!!.debugMessage}"
+                        "Failed to acknowledge for token $purchaseToken - " +
+                                "code: ${bResult!!.responseCode}, message: " +
+                                bResult!!.debugMessage
                     )
                     break
                 }

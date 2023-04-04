@@ -57,7 +57,8 @@ import com.example.subscriptions.data.SubscriptionStatus
 import com.example.subscriptions.presenter.SubscriptionDetailsPresenter
 import com.example.subscriptions.utils.basicTextForSubscription
 import com.example.subscriptions.utils.premiumTextForSubscription
-import kotlinx.coroutines.flow.collect
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import kotlinx.coroutines.launch
 
 /**
@@ -476,6 +477,21 @@ class TvMainFragment : DetailsSupportFragment() {
     private fun refreshUI() {
         setupAdapter()
         setupDetailsOverviewRow()
+    }
+
+    /**
+     * Get a readable date from the time in milliseconds.
+     */
+    private fun getHumanReadableDate(milliSeconds: Long): String {
+        val formatter = SimpleDateFormat.getDateInstance()
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = milliSeconds
+        if (milliSeconds == 0L) {
+            Log.d(TAG, "Suspicious time: 0 milliseconds.")
+        } else {
+            Log.d(TAG, "Milliseconds: $milliSeconds")
+        }
+        return formatter.format(calendar.time)
     }
 
     /**

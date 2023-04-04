@@ -20,34 +20,27 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.lifecycle.ViewModelProvider
-import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.android.billingclient.api.Purchase
 import com.example.subscriptions.Constants
-import com.example.subscriptions.R
 import com.example.subscriptions.SubApp
 import com.example.subscriptions.billing.BillingClientLifecycle
-import com.example.subscriptions.databinding.ActivityMainBinding
+import com.example.subscriptions.ui.composable.home.ClassyTaxiApp
 import com.firebase.ui.auth.AuthUI
-import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
-import com.google.firebase.auth.FirebaseUser
+
 
 /**
- * [MainActivity] contains 3 [TabFragment] objects.
- * Each fragment uses this activity as the lifecycle owner for [SubscriptionStatusViewModel].
- * When the ViewModel needs to open an Intent from this Activity, it calls a [SingleLiveEvent]
- * observed in this Activity.
+ * MainActivity contains a UI that leverages Material Components to build an optimized
+ * Android experience for Classy Taxi.
  *
  * Uses [FirebaseUserViewModel] to maintain authentication state.
  * The menu is updated when the [FirebaseUser] changes.
  * When sign-in or sign-out is completed, call the [FirebaseUserViewModel] to update the state.
+ *
  */
 class MainActivity : AppCompatActivity() {
     private lateinit var billingClientLifecycle: BillingClientLifecycle
@@ -67,29 +60,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        ActivityMainBinding.inflate(layoutInflater).apply {
-            setContentView(root)
-            setSupportActionBar(toolbar)
-
-            // Create the adapter that will return a fragment for each of the three
-            // primary sections of the activity.
-            container.adapter = SectionsStateAdapter(this@MainActivity)
-            TabLayoutMediator(tabs, container) { tab, position ->
-                when (position) {
-                    0 -> tab.setText(R.string.tab_text_home)
-                    1 -> tab.setText(R.string.tab_text_premium)
-                    2 -> tab.setText(R.string.tab_text_settings)
-                }
-            }.attach()
-        }
-
-        authenticationViewModel = ViewModelProvider(this).get(FirebaseUserViewModel::class.java)
-        billingViewModel = ViewModelProvider(this).get(BillingViewModel::class.java)
+        authenticationViewModel = ViewModelProvider(this)[FirebaseUserViewModel::class.java]
+        billingViewModel = ViewModelProvider(this)[BillingViewModel::class.java]
         subscriptionViewModel =
-            ViewModelProvider(this).get(SubscriptionStatusViewModel::class.java)
+            ViewModelProvider(this)[SubscriptionStatusViewModel::class.java]
 
         // Billing APIs are all handled in the this lifecycle observer.
         billingClientLifecycle = (application as SubApp).billingClientLifecycle
@@ -132,7 +108,18 @@ class MainActivity : AppCompatActivity() {
             subscriptionViewModel.userChanged()
             registerPurchases(billingClientLifecycle.purchases.value)
         }
+
+        super.onCreate(savedInstanceState)
+        setContent {
+            ClassyTaxiApp(
+                billingViewModel = billingViewModel,
+                subscriptionViewModel = subscriptionViewModel,
+                billingClientLifecycle = billingClientLifecycle,
+                authenticationViewModel = authenticationViewModel,
+            )
+        }
     }
+
 
     /**
      * Register Products and purchase tokens with the server.
@@ -147,50 +134,6 @@ class MainActivity : AppCompatActivity() {
                 purchaseToken = purchaseToken
             )
         }
-    }
-
-    /**
-     * Create menu items.
-     */
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu, menu)
-        return true
-    }
-
-    /**
-     * Update menu based on sign-in state. Called in response to [invalidateOptionsMenu].
-     */
-    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        val isSignedIn = authenticationViewModel.isSignedIn()
-        menu.findItem(R.id.sign_in).isVisible = !isSignedIn
-        menu.findItem(R.id.sign_out).isVisible = isSignedIn
-        return true
-    }
-
-    /**
-     * Called when menu item is selected.
-     */
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.sign_out -> {
-                triggerSignOut()
-                true
-            }
-            R.id.sign_in -> {
-                triggerSignIn()
-                true
-            }
-            R.id.refresh -> {
-                refreshData()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
-    }
-
-    private fun refreshData() {
-        billingClientLifecycle.queryPurchases()
-        subscriptionViewModel.manualRefresh()
     }
 
     /**
@@ -210,33 +153,8 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    /**
-     * Sign out with FirebaseUI Auth.
-     */
-    private fun triggerSignOut() {
-        subscriptionViewModel.unregisterInstanceId()
-        AuthUI.getInstance().signOut(this).addOnCompleteListener {
-            Log.d(TAG, "User SIGNED OUT!")
-            authenticationViewModel.updateFirebaseUser()
-        }
-    }
-
-    /**
-     * A [FragmentStateAdapter] that returns a fragment corresponding to
-     * one of the sections/tabs/pages.
-     */
-    private class SectionsStateAdapter(activity : FragmentActivity) :
-        FragmentStateAdapter(activity) {
-        override fun createFragment(position: Int): Fragment = TabFragment.newInstance(position)
-        override fun getItemCount(): Int = TAB_COUNT
-    }
 
     companion object {
-        const val HOME_PAGER_INDEX = 0
-        const val PREMIUM_PAGER_INDEX = 1
-        const val SETTINGS_PAGER_INDEX = 2
-
         private const val TAG = "MainActivity"
-        private const val TAB_COUNT = 3
     }
 }

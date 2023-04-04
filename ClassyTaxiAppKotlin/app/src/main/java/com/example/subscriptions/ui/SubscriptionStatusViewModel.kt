@@ -28,6 +28,8 @@ import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class SubscriptionStatusViewModel(
@@ -36,6 +38,23 @@ class SubscriptionStatusViewModel(
 
     // TODO this should be moved to constructor param and injected by Hilt
     private val repository: SubRepository = (application as SubApp).repository
+
+    private val _currentSubscription = MutableStateFlow(CurrentSubscription.NONE)
+    val currentSubscription = _currentSubscription.asStateFlow()
+
+    private val userCurrentSubscription = combine(
+        repository.hasPrepaidBasic,
+        repository.hasPrepaidPremium,
+        repository.hasRenewableBasic,
+        repository.hasRenewablePremium,
+    ) { hasPrepaidBasic, hasPrepaidPremium, hasRenewableBasic, hasRenewablePremium ->
+        ClassyTaxiUIState(
+            hasPrepaidBasic = hasPrepaidBasic,
+            hasPrepaidPremium = hasPrepaidPremium,
+            hasRenewableBasic = hasRenewableBasic,
+            hasRenewablePremium = hasRenewablePremium,
+        )
+    }
 
     /**
      * True when there are pending network requests.
@@ -60,6 +79,38 @@ class SubscriptionStatusViewModel(
     // TODO show UI status in View
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage = _errorMessage.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            userCurrentSubscription.collectLatest { collectedSubscriptions ->
+                when {
+                    collectedSubscriptions.hasRenewableBasic == true &&
+                            collectedSubscriptions.hasRenewablePremium == false -> {
+                        _currentSubscription.value = CurrentSubscription.BASIC_RENEWABLE
+                    }
+
+                    collectedSubscriptions.hasRenewablePremium == true &&
+                            collectedSubscriptions.hasRenewableBasic == false -> {
+                        _currentSubscription.value = CurrentSubscription.PREMIUM_RENEWABLE
+                    }
+
+                    collectedSubscriptions.hasPrepaidBasic == true &&
+                            collectedSubscriptions.hasPrepaidPremium == false -> {
+                        _currentSubscription.value = CurrentSubscription.BASIC_PREPAID
+                    }
+
+                    collectedSubscriptions.hasPrepaidPremium == true &&
+                            collectedSubscriptions.hasPrepaidBasic == false -> {
+                        _currentSubscription.value = CurrentSubscription.PREMIUM_PREPAID
+                    }
+
+                    else -> {
+                        _currentSubscription.value = CurrentSubscription.NONE
+                    }
+                }
+            }
+        }
+    }
 
     fun unregisterInstanceId() {
         // Unregister current Instance ID before the user signs out.
@@ -133,10 +184,19 @@ class SubscriptionStatusViewModel(
                 val purchaseToken = subscription.purchaseToken
                 if (product != null && purchaseToken != null) {
                     repository.transferSubscription(
-                        product = product, purchaseToken = purchaseToken)
+                        product = product, purchaseToken = purchaseToken
+                    )
                 }
             }
         }
+    }
+
+    enum class CurrentSubscription {
+        BASIC_PREPAID,
+        BASIC_RENEWABLE,
+        PREMIUM_PREPAID,
+        PREMIUM_RENEWABLE,
+        NONE;
     }
 
     companion object {

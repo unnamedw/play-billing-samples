@@ -30,7 +30,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:banner="@drawable/tv_banner"
-        tools:ignore="GoogleAppIndexingWarning">
+        android:dataExtractionRules="@xml/data_extraction_rules">
 
         <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
 

@@ -23,12 +23,10 @@
     <string name="tab_text_prepaid">Prepaid</string>
     <string name="tab_text_premium">Premium</string>
     <string name="tab_text_settings">Settings</string>
-    <string name="sign_out">Sign out</string>
     <string name="sign_in">Sign in</string>
     <string name="no_basic_content">Loading basic content</string>
     <string name="no_premium_content">Loading premium content</string>
     <string name="no_prepaid_content">Loading prepaid content</string>
-    <string name="refresh_menu_text">Refresh</string>
 
     <!-- Minor subscription notices -->
     <string name="grace_period_message">Something’s wrong with your subscription, but you’ve still
@@ -103,12 +101,6 @@
         subscription.</string>
     <string name="basic_to_prepaid_button">Convert to Prepaid</string>
 
-    <!-- Convert Premium to Prepaid -->
-    <string name="premium_to_prepaid_text">Tap to convert to Prepaid plan</string>
-    <string name="premium_to_prepaid_message">
-        You have a premium subscription. Tap to convert to a Prepaid subscription.</string>
-    <string name="premium_to_prepaid_button">Convert to Prepaid</string>
-
     <!-- Convert Prepaid to Basic Base plans -->
     <string name="basic_monthly_conversion_button_text">
         Convert Prepaid to monthly Basic subscription</string>
@@ -165,5 +157,57 @@
     <!-- Manage subscriptions guided step on Android TV -->
     <string name="done">Done</string>
     <string name="manage_subscription_scan_qr_code">Scan QR code with your mobile device.</string>
+
+    <!-- Compose -->
+    <string name="subscription_selection_button_text">Subscription</string>
+    <string name="menu_content_description_text">Menu</string>
+    <string name="monthly_basic_plan_text">Monthly Basic Plan</string>
+    <string name="yearly_basic_plan_text">Yearly Basic Plan</string>
+    <string name="prepaid_basic_plan_text">Prepaid Basic Plan</string>
+    <string name="monthly_premium_plan_text">Monthly Premium Plan</string>
+    <string name="yearly_premium_plan_text">Yearly Premium Plan</string>
+    <string name="prepaid_premium_plan_text">Prepaid Premium Plan</string>
+    <string name="basic_paywall_message">Subscribe to a Basic plan</string>
+
+    <!-- Subscription -->
+    <string name="current_recurring_basic_subscription_message">You have a recurring basic subscription to Classy Taxi</string>
+    <string name="current_recurring_premium_subscription_message">You have a recurring premium subscription to Classy Taxi</string>
+    <string name="current_prepaid_basic_subscription_message">You have a prepaid basic subscription to Classy Taxi</string>
+    <string name="current_prepaid_premium_subscription_message">You have a prepaid premium subscription to Classy Taxi</string>
+
+    <!-- Downgrade Any Premium Plan to Any Basic Plan-->
+    <string name="downgrade_to_basic_monthly">Downgrade to Monthly Basic Plan</string>
+    <string name="downgrade_to_basic_yearly">Downgrade to Yearly Basic Plan</string>
+    <string name="downgrade_to_basic_prepaid">Downgrade to Prepaid Basic Plan</string>
+
+    <!-- Convert Any Basic Plan to Any Basic Plan-->
+    <string name="convert_to_basic_prepaid">Convert to Prepaid Basic Plan</string>
+    <string name="convert_to_basic_monthly">Convert to Monthly Basic Plan</string>
+    <string name="convert_to_basic_yearly">Convert to Yearly Basic Plan</string>
+
+    <!-- Upgrade Any Basic Plan to Any Premium Plan-->
+    <string name="upgrade_to_premium_monthly">Upgrade to Monthly Premium Plan</string>
+    <string name="upgrade_to_premium_yearly">Upgrade to Yearly Premium Plan</string>
+    <string name="upgrade_to_premium_prepaid">Upgrade to Prepaid Premium Plan</string>
+
+    <!-- Convert Any Premium Plan to Any Premium Plan-->
+    <string name="convert_to_premium_prepaid">Convert to Prepaid Premium Plan</string>
+    <string name="convert_to_premium_monthly">Convert to Monthly Premium Plan</string>
+    <string name="convert_to_premium_yearly">Convert to Yearly Premium Plan</string>
+
+
+    <!-- Convert Premium Monthly to Prepaid -->
+    <string name="premium_to_prepaid_text">Tap to convert to Prepaid plan</string>
+    <string name="premium_to_prepaid_message">
+        You have a premium subscription. Tap to convert to a Prepaid subscription.</string>
+    <string name="premium_to_prepaid_button">Convert to Prepaid</string>
+
+    <string name="google_play_billing_settings_message">Google Play Billing Settings</string>
+
+    <!-- Menu -->
+    <string name="menu_title">Menu</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="refresh_menu_text">Refresh</string>
+    <string name="menu_drawer_content_description">Classy Taxi Menu Banner</string>
 
 </resources>

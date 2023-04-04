@@ -43,42 +43,55 @@ ext {
     keystoreKeyPassword = keystoreProperties['keyPassword']
 
     // Android version information.
-    androidMinimumSdkVersion = 21
+    androidMinimumSdkVersion = 31
     androidTargetSdkVersion = 31
-    androidCompileSdkVersion = 32
+    androidCompileSdkVersion = 33
 }
 
 buildscript {
     ext {
         // Library versions.
-        billingVersion = '5.0.0'
+        billingVersion = '5.1.0'
         coroutinesVersion = '1.6.0'
         firebaseUiVersion = '8.0.0'
         glideVersion = '4.13.0'
-        gsonVersion = '2.8.6'
+        gsonVersion = '2.9.0'
         jsonVersion = '20140107'
-        fragmentVersion = '1.4.1'
+        fragmentVersion = '1.5.6'
         firebaseBomVersion = '28.4.1'
-        lifecycleVersion = '2.4.1'
-        materialUiVersion = '1.4.0'
-        playServicesVersion = '20.1.0'
+        lifecycleVersion = '2.6.1'
+        lifecycleExtentionsVersion = '2.2.0'
+        materialUiVersion = '1.8.0'
+        playServicesVersion = '20.4.1'
         retrofitSuiteVersion = '2.9.0'
-        roomVersion = '2.4.2'
+        roomVersion = '2.5.1'
+        interceptorVersion = '3.8.0'
+        leanbackPreferenceVersion = '1.0.0'
+        cardViewVersion = '1.0.0'
+        appCompatVersion = '1.6.1'
 
         // Tools versions.
         gradleGoogleVersion = '4.3.10'
-        gradleToolsVersion = '7.1.2'
-        kotlinVersion = '1.6.10'
+        gradleToolsVersion = '7.4.2'
+        kotlinVersion = '1.8.10'
 
         // Testing versions.
-        androidXTestCoreVersion = '1.4.0'
-        androidXTestExtKotlinRunnerVersion = '1.1.3'
-        archTestingVersion = '2.1.0'
+        androidXTestCoreVersion = '1.5.0'
+        androidXTestExtKotlinRunnerVersion = '1.1.5'
+        archTestingVersion = '2.2.0'
         hamcrestVersion = '2.2'
         jUnitVersion = '4.13.2'
         mockitoVersion = '4.3.0'
         mockKVersion = '1.12.3'
         robolectricVersion = '4.7.3'
+        expressoVersion = "3.5.1"
+
+        // Compose versions.
+        compose_version = "1.4.2"
+        nav_version = "2.5.3"
+        lifecycleVersion = "2.6.1"
+        activityComposeVersion = "1.7.0"
+        glideComposeVersion = "1.0.0-alpha.1"
     }
 
     repositories {
@@ -102,6 +115,6 @@ allprojects {
     }
 }
 
-task clean(type: Delete) {
+tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }

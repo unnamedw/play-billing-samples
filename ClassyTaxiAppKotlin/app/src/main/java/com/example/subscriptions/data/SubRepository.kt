@@ -26,11 +26,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -75,6 +77,34 @@ class SubRepository private constructor(
      * Intended to be collected by ViewModel
      */
     val premiumContent = _premiumContent.asStateFlow()
+
+    // Set to true when a returned purchases is an auto-renewing basic subscription.
+    val hasRenewableBasic: StateFlow<Boolean> = billingClientLifecycle.purchases.map { purchaseList ->
+        purchaseList.any { purchase ->
+            purchase.products.contains(Constants.BASIC_PRODUCT) && purchase.isAutoRenewing
+        }
+    }.stateIn(externalScope, SharingStarted.WhileSubscribed(), false)
+
+    // Set to true when a returned purchase is prepaid basic subscription.
+    val hasPrepaidBasic: StateFlow<Boolean> = billingClientLifecycle.purchases.map { purchaseList ->
+        purchaseList.any { purchase ->
+            !purchase.isAutoRenewing && purchase.products.contains(Constants.BASIC_PRODUCT)
+        }
+    }.stateIn(externalScope, SharingStarted.WhileSubscribed(), false)
+
+    // Set to true when a returned purchases is an auto-renewing premium subscription.
+    val hasRenewablePremium: StateFlow<Boolean> = billingClientLifecycle.purchases.map { purchaseList ->
+        purchaseList.any { purchase ->
+            purchase.products.contains(Constants.PREMIUM_PRODUCT) && purchase.isAutoRenewing
+        }
+    }.stateIn(externalScope, SharingStarted.WhileSubscribed(), false)
+
+    // Set to true when a returned purchase is prepaid premium subscription.
+    val hasPrepaidPremium: StateFlow<Boolean> = billingClientLifecycle.purchases.map { purchaseList ->
+        purchaseList.any { purchase ->
+            !purchase.isAutoRenewing && purchase.products.contains(Constants.PREMIUM_PRODUCT)
+        }
+    }.stateIn(externalScope, SharingStarted.WhileSubscribed(), false)
 
     init {
         // Update content from the remote server.
@@ -140,8 +170,6 @@ class SubRepository private constructor(
                     }
                     Constants.PREMIUM_PRODUCT -> {
                         updatePremium = true
-                        // Premium subscribers get access to basic content as well.
-                        updateBasic = true
                     }
                 }
             }
