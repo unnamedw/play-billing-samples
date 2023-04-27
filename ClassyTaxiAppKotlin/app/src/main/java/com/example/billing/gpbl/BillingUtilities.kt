@@ -18,12 +18,15 @@ package com.example.billing.gpbl
 
 import com.android.billingclient.api.Purchase
 import com.example.billing.Constants
-import com.example.billing.data.SubscriptionStatus
+import com.example.billing.data.subscriptions.SubscriptionStatus
 
 /**
  * Return subscription for the provided Product, if it exists.
  */
-fun subscriptionForProduct(subscriptions: List<SubscriptionStatus>?, product: String): SubscriptionStatus? {
+fun subscriptionForProduct(
+    subscriptions: List<SubscriptionStatus>?,
+    product: String
+): SubscriptionStatus? {
     subscriptions?.let {
         for (subscription in it) {
             if (subscription.product == product) {
@@ -140,6 +143,7 @@ fun isAccountHold(subscription: SubscriptionStatus?) =
             !subscription.isEntitlementActive &&
             subscription.isAccountHold &&
             !subscription.subAlreadyOwned
+
 /**
  * Returns true if account pause should be shown.
  */
@@ -149,12 +153,14 @@ fun isPaused(subscription: SubscriptionStatus?) =
             !subscription.isEntitlementActive &&
             subscription.isPaused &&
             !subscription.subAlreadyOwned
+
 /**
  * Returns true if the subscription is already owned and requires a transfer to this account.
  */
 // TODO need to be refactored like isBasicContent
 fun isTransferRequired(subscription: SubscriptionStatus?) =
     subscription != null && subscription.subAlreadyOwned
+
 /**
  * Returns true if the subscription is a prepraid.
  */

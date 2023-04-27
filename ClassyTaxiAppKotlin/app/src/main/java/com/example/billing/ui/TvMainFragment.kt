@@ -52,8 +52,8 @@ import com.example.billing.gpbl.isGracePeriod
 import com.example.billing.gpbl.isPremiumContent
 import com.example.billing.gpbl.isSubscriptionRestore
 import com.example.billing.gpbl.isTransferRequired
-import com.example.billing.data.SubscriptionContent
-import com.example.billing.data.SubscriptionStatus
+import com.example.billing.data.subscriptions.SubscriptionContent
+import com.example.billing.data.subscriptions.SubscriptionStatus
 import com.example.billing.presenter.SubscriptionDetailsPresenter
 import com.example.billing.utils.basicTextForSubscription
 import com.example.billing.utils.premiumTextForSubscription

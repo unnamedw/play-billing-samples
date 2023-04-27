@@ -4,9 +4,9 @@ import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.billingclient.api.Purchase
 import com.example.billing.gpbl.BillingClientLifecycle
-import com.example.billing.data.disk.SubLocalDataSource
-import com.example.billing.data.disk.db.AppDatabase
-import com.example.billing.data.network.SubRemoteDataSource
+import com.example.billing.data.disk.BillingLocalDataSource
+import com.example.billing.data.disk.db.SubscriptionPurchasesDatabase
+import com.example.billing.data.network.BillingRemoteDataSource
 import com.example.billing.data.network.firebase.FakeServerFunctions
 import com.example.billing.data.network.firebase.ServerFunctions
 import io.mockk.coEvery
@@ -34,13 +34,13 @@ fun samplePurchase(product: String, purchaseToken: String): Purchase =
         """, "signature"
     )
 
-class SubRepositoryTest {
-    private lateinit var database: AppDatabase
+class BillingRepositoryTest {
+    private lateinit var database: SubscriptionPurchasesDatabase
     private lateinit var serverFunctions: ServerFunctions
-    private lateinit var subLocalDataSource: SubLocalDataSource
-    private lateinit var subRemoteDataSource: SubRemoteDataSource
+    private lateinit var billingLocalDataSource: BillingLocalDataSource
+    private lateinit var billingRemoteDataSource: BillingRemoteDataSource
     private lateinit var billingClientLifecycle: BillingClientLifecycle
-    private lateinit var repository: SubRepository
+    private lateinit var repository: BillingRepository
     private lateinit var testScope: TestScope
 
     @Before
@@ -48,17 +48,17 @@ class SubRepositoryTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
 
         // TODO delegate the following instantiations to Hilt
-        database = Room.inMemoryDatabaseBuilder(appContext, AppDatabase::class.java).build()
+        database = Room.inMemoryDatabaseBuilder(appContext, SubscriptionPurchasesDatabase::class.java).build()
         serverFunctions = FakeServerFunctions.getInstance()
-        subLocalDataSource = SubLocalDataSource.getInstance(database.subscriptionStatusDao())
-        subRemoteDataSource = SubRemoteDataSource.getInstance(serverFunctions)
+        billingLocalDataSource = BillingLocalDataSource.getInstance(database.subscriptionStatusDao())
+        billingRemoteDataSource = BillingRemoteDataSource.getInstance(serverFunctions)
 
         billingClientLifecycle = mockk()
-        every { billingClientLifecycle.purchases } answers { MutableStateFlow(emptyList()) }
+        every { billingClientLifecycle.subscriptionPurchases } answers { MutableStateFlow(emptyList()) }
 
         testScope = TestScope(UnconfinedTestDispatcher())
-        repository = SubRepository.getInstance(
-            subLocalDataSource, subRemoteDataSource, billingClientLifecycle, testScope
+        repository = BillingRepository.getInstance(
+            billingLocalDataSource, billingRemoteDataSource, billingClientLifecycle, testScope
         )
     }
 
@@ -83,7 +83,7 @@ class SubRepositoryTest {
                 } returns true
                 every {
                     billingClientLifecycle
-                        .purchases
+                        .subscriptionPurchases
                 } returns MutableStateFlow(listOf(purchase))
 
                 // when
@@ -118,7 +118,7 @@ class SubRepositoryTest {
                 } throws Exception("FAILURE!")
                 every {
                     billingClientLifecycle
-                        .purchases
+                        .subscriptionPurchases
                 } returns MutableStateFlow(listOf(purchase))
 
                 // when
@@ -152,7 +152,7 @@ class SubRepositoryTest {
                         .acknowledgePurchase("TEST_TOKEN")
                 } coAnswers { true }
                 val purchaseState = MutableStateFlow(listOf(purchase))
-                every { billingClientLifecycle.purchases } returns purchaseState
+                every { billingClientLifecycle.subscriptionPurchases } returns purchaseState
 
                 // when
                 repository.registerSubscription(
@@ -161,7 +161,7 @@ class SubRepositoryTest {
                 )
 
                 // then
-                val storedSubscriptionList = subLocalDataSource.getSubscriptions().first()
+                val storedSubscriptionList = billingLocalDataSource.getSubscriptions().first()
                 val storedSubscription = storedSubscriptionList.first()
                 assertThat(storedSubscription.product, `is`("basic_subscription"))
                 assertThat(storedSubscription.purchaseToken, `is`("TEST_TOKEN"))

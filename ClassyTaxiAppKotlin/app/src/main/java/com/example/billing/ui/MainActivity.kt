@@ -23,14 +23,15 @@ import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import com.android.billingclient.api.Purchase
+import com.example.billing.BillingApp
 import com.example.billing.Constants
-import com.example.billing.SubApp
 import com.example.billing.gpbl.BillingClientLifecycle
 import com.example.billing.ui.composable.home.ClassyTaxiApp
 import com.firebase.ui.auth.AuthUI
+import kotlinx.coroutines.launch
 
 
 /**
@@ -38,7 +39,7 @@ import com.firebase.ui.auth.AuthUI
  * Android experience for Classy Taxi.
  *
  * Uses [FirebaseUserViewModel] to maintain authentication state.
- * The menu is updated when the [FirebaseUser] changes.
+ * The menu is updated when the user changes.
  * When sign-in or sign-out is completed, call the [FirebaseUserViewModel] to update the state.
  *
  */
@@ -48,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var authenticationViewModel: FirebaseUserViewModel
     private lateinit var billingViewModel: BillingViewModel
     private lateinit var subscriptionViewModel: SubscriptionStatusViewModel
+    private lateinit var oneTimePurchaseViewModel: OneTimeProductPurchaseStatusViewModel
 
     private val registerResult = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -60,15 +62,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         authenticationViewModel = ViewModelProvider(this)[FirebaseUserViewModel::class.java]
         billingViewModel = ViewModelProvider(this)[BillingViewModel::class.java]
         subscriptionViewModel =
             ViewModelProvider(this)[SubscriptionStatusViewModel::class.java]
+        oneTimePurchaseViewModel =
+            ViewModelProvider(this)[OneTimeProductPurchaseStatusViewModel::class.java]
 
         // Billing APIs are all handled in the this lifecycle observer.
-        billingClientLifecycle = (application as SubApp).billingClientLifecycle
+        billingClientLifecycle = (application as BillingApp).billingClientLifecycle
         lifecycle.addObserver(billingClientLifecycle)
 
         // Launch the billing flow when the user clicks a button to buy something.
@@ -103,10 +106,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Update subscription information when user changes.
+        // Update purchases information when user changes.
         authenticationViewModel.userChangeEvent.observe(this) {
             subscriptionViewModel.userChanged()
-            registerPurchases(billingClientLifecycle.purchases.value)
+            lifecycleScope.launch {
+                registerPurchases(billingClientLifecycle.subscriptionPurchases.value)
+                registerPurchases(billingClientLifecycle.oneTimeProductPurchases.value)
+            }
         }
 
         super.onCreate(savedInstanceState)
@@ -114,26 +120,18 @@ class MainActivity : AppCompatActivity() {
             ClassyTaxiApp(
                 billingViewModel = billingViewModel,
                 subscriptionViewModel = subscriptionViewModel,
-                billingClientLifecycle = billingClientLifecycle,
                 authenticationViewModel = authenticationViewModel,
+                oneTimeProductViewModel = oneTimePurchaseViewModel,
             )
         }
     }
 
 
     /**
-     * Register Products and purchase tokens with the server.
+     * Register Product purchases with the server.
      */
-    private fun registerPurchases(purchaseList: List<Purchase>) {
-        for (purchase in purchaseList) {
-            val product = purchase.products[0]
-            val purchaseToken = purchase.purchaseToken
-            Log.d(TAG, "Register purchase with product: $product, token: $purchaseToken")
-            subscriptionViewModel.registerSubscription(
-                product = product,
-                purchaseToken = purchaseToken
-            )
-        }
+    private suspend fun registerPurchases(purchaseList: List<Purchase>) {
+        billingViewModel.registerPurchases(purchaseList)
     }
 
     /**
@@ -152,7 +150,6 @@ class MainActivity : AppCompatActivity() {
                 .build()
         )
     }
-
 
     companion object {
         private const val TAG = "MainActivity"

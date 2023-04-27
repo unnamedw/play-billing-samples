@@ -14,15 +14,9 @@
  * limitations under the License.
  */
 
-package com.example.billing.ui
 
-import com.android.billingclient.api.Purchase
+package com.example.billing.data.otps
 
-
-data class ClassyTaxiUIState(
-    val hasRenewableBasic: Boolean? = false,
-    val hasPrepaidBasic: Boolean? = false,
-    val hasRenewablePremium: Boolean? = false,
-    val hasPrepaidPremium: Boolean? = false,
-    val purchases: List<Purchase>? = null,
+data class OneTimeProductPurchaseStatusList(
+    val oneTimeProductPurchases: List<OneTimeProductPurchaseStatus>?
 )

@@ -4,7 +4,7 @@ package com.example.billing.utils
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.billing.data.SubscriptionStatus
+import com.example.billing.data.subscriptions.SubscriptionStatus
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Before

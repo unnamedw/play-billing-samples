@@ -21,36 +21,49 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
+import com.example.billing.BillingApp
 import com.example.billing.Constants
-import com.example.billing.SubApp
+import com.example.billing.data.BillingRepository
+import com.example.billing.data.otps.OneTimeProductPurchaseStatus
+import com.example.billing.data.subscriptions.SubscriptionStatus
 import com.example.billing.gpbl.deviceHasGooglePlaySubscription
 import com.example.billing.gpbl.serverHasSubscription
-import com.example.billing.data.SubscriptionStatus
 import kotlinx.coroutines.flow.StateFlow
 
 
 class BillingViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val repository: BillingRepository = (application as BillingApp).repository
+
     /**
      * Local billing purchase data.
      */
-    private val purchases = (application as SubApp).billingClientLifecycle.purchases
+    private val purchases = (application as BillingApp).billingClientLifecycle.subscriptionPurchases
 
     /**
      * ProductDetails for all known Products.
      */
     private val premiumSubProductWithProductDetails =
-        (application as SubApp).billingClientLifecycle.premiumSubProductWithProductDetails
+        (application as BillingApp).billingClientLifecycle.premiumSubProductWithProductDetails
 
     private val basicSubProductWithProductDetails =
-        (application as SubApp).billingClientLifecycle.basicSubProductWithProductDetails
+        (application as BillingApp).billingClientLifecycle.basicSubProductWithProductDetails
 
+    private val oneTimeProductWithProductDetails =
+        (application as BillingApp).billingClientLifecycle.oneTimeProductWithProductDetails
 
     /**
      * Subscriptions record according to the server.
      */
     private val subscriptions: StateFlow<List<SubscriptionStatus>> =
-        (application as SubApp).repository.subscriptions
+        (application as BillingApp).repository.subscriptions
+
+    /**
+     * One-time product purchases record according to the server.
+     */
+    val oneTimeProductPurchases: StateFlow<List<OneTimeProductPurchaseStatus>> =
+        (application as BillingApp).repository.oneTimeProductPurchases
 
     /**
      * Send an event when the Activity needs to buy something.
@@ -322,7 +335,44 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
-     * Launches the billing flow.
+     * Launches the Billing Flow for a one-time product purchase.
+     *
+     */
+    fun buyOneTimeProduct() {
+        // First, the ProductDetails of the product being purchased.
+        val productDetails =
+            oneTimeProductWithProductDetails.value ?: run {
+                Log.e(TAG, "Could not find ProductDetails to make purchase.")
+                return
+            }
+
+        // Use [billingFlowParamsBuilder] to build the Params that describe the product to be
+        // purchased and the offer to purchase with.
+        val billingParams = BillingFlowParams.newBuilder().setProductDetailsParamsList(
+            listOf(
+                BillingFlowParams.ProductDetailsParams.newBuilder()
+                    .setProductDetails(productDetails)
+                    .build()
+            )
+        ).build()
+
+        buyEvent.postValue(billingParams)
+    }
+
+    /**
+     * Consumes a one-time product purchase.
+     *
+     * @param purchaseToken String representing the purchase token of the product being consumed.
+     *
+     */
+    suspend fun consumePurchase(purchaseToken: String) {
+        val product = Constants.ONE_TIME_PRODUCT
+
+        repository.consumeOneTimeProductPurchase(product = product, purchaseToken = purchaseToken)
+    }
+
+    /**
+     * Launches the billing flow for a subscription product purchase.
      * A user can only have one subscription purchase on the device at a time. If the user
      * has more than one subscription purchase on the device, the app should not allow the
      * user to purchase another subscription.
@@ -373,6 +423,15 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
             )
         }
         buyEvent.postValue(billingParams)
+    }
+
+
+    suspend fun registerPurchases(purchases: List<Purchase>) {
+        if (purchases.isEmpty()) {
+            Log.e(TAG, "No purchases to register.")
+        } else {
+            repository.registerPurchases(purchases)
+        }
     }
 
     companion object {

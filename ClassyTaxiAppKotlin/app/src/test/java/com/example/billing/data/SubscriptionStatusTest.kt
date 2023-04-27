@@ -16,6 +16,8 @@
 
 package com.example.billing.data
 
+import com.example.billing.data.subscriptions.SubscriptionStatus
+import com.example.billing.data.subscriptions.SubscriptionStatusList
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import org.junit.Assert.assertEquals

@@ -18,7 +18,7 @@ package com.example.billing.presenter
 
 import android.text.TextUtils
 import androidx.leanback.widget.AbstractDetailsDescriptionPresenter
-import com.example.billing.data.SubscriptionContent
+import com.example.billing.data.subscriptions.SubscriptionContent
 
 /**
  * Presenter class used to bind and display metadata from a SubscriptionContent object

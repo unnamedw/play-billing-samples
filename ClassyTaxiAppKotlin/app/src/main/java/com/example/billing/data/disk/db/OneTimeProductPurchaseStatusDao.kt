@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC. All rights reserved.
+ * Copyright 2023 Google LLC. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,24 @@
  * limitations under the License.
  */
 
+
 package com.example.billing.data.disk.db
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.billing.data.subscriptions.SubscriptionStatus
+import com.example.billing.data.otps.OneTimeProductPurchaseStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface SubscriptionStatusDao {
-    @Query("SELECT * FROM subscriptions")
-    fun getAll(): Flow<List<SubscriptionStatus>>
+interface OneTimeProductPurchaseStatusDao {
+    @Query("SELECT * FROM oneTimeProductPurchases")
+    fun getAll(): Flow<List<OneTimeProductPurchaseStatus>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(subscriptions: List<SubscriptionStatus>)
+    suspend fun insertAll(oneTimeProducts: List<OneTimeProductPurchaseStatus>)
 
-    @Query("DELETE FROM subscriptions")
+    @Query("DELETE FROM oneTimeProductPurchases")
     suspend fun deleteAll()
 }

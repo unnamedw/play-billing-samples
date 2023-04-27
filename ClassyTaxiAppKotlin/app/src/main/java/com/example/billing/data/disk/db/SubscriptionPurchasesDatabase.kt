@@ -21,22 +21,22 @@ import androidx.annotation.VisibleForTesting
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.billing.data.SubscriptionStatus
+import com.example.billing.data.subscriptions.SubscriptionStatus
 
 @Database(entities = [(SubscriptionStatus::class)], version = 6)
-abstract class AppDatabase : RoomDatabase() {
+abstract class SubscriptionPurchasesDatabase : RoomDatabase() {
 
     abstract fun subscriptionStatusDao(): SubscriptionStatusDao
 
     companion object {
 
         @Volatile
-        private var INSTANCE: AppDatabase? = null
+        private var INSTANCE: SubscriptionPurchasesDatabase? = null
 
         @VisibleForTesting
         private val DATABASE_NAME = "subscriptions-db"
 
-        fun getInstance(context: Context): AppDatabase =
+        fun getInstance(context: Context): SubscriptionPurchasesDatabase =
                 INSTANCE ?: synchronized(this) {
                     INSTANCE ?: buildDatabase(context.applicationContext).also {
                         INSTANCE = it
@@ -47,8 +47,8 @@ abstract class AppDatabase : RoomDatabase() {
          * Set up the database configuration.
          * The SQLite database is only created when it's accessed for the first time.
          */
-        private fun buildDatabase(appContext: Context): AppDatabase {
-            return Room.databaseBuilder(appContext, AppDatabase::class.java, DATABASE_NAME)
+        private fun buildDatabase(appContext: Context): SubscriptionPurchasesDatabase {
+            return Room.databaseBuilder(appContext, SubscriptionPurchasesDatabase::class.java, DATABASE_NAME)
                     .fallbackToDestructiveMigration()
                     .build()
         }

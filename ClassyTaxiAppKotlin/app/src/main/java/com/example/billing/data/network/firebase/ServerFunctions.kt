@@ -17,8 +17,9 @@
 package com.example.billing.data.network.firebase
 
 import com.example.billing.data.ContentResource
-import com.example.billing.data.SubscriptionStatus
 import com.example.billing.data.network.retrofit.ServerFunctionsImpl
+import com.example.billing.data.otps.OneTimeProductPurchaseStatus
+import com.example.billing.data.subscriptions.SubscriptionStatus
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -45,6 +46,11 @@ interface ServerFunctions {
     val premiumContent: StateFlow<ContentResource?>
 
     /**
+     * The one time product content URL.
+     */
+    val otpContent: StateFlow<ContentResource?>
+
+    /**
      * Fetch basic content and post results to [basicContent].
      * This will fail if the user does not have a basic subscription.
      */
@@ -57,9 +63,20 @@ interface ServerFunctions {
     suspend fun updatePremiumContent()
 
     /**
+     * Fetch a one-time product content and post results to [otpContent].
+     * This will fail if the user does not have a one-time product purchase.
+     */
+    suspend fun updateOtpContent()
+
+    /**
      * Fetches subscription data from the server.
      */
     suspend fun fetchSubscriptionStatus(): List<SubscriptionStatus>
+
+    /**
+     * Fetches one-time product purchases data from the server.
+     */
+    suspend fun fetchOtpStatus(): List<OneTimeProductPurchaseStatus>
 
     /**
      * Register a subscription with the server and return results.
@@ -70,7 +87,15 @@ interface ServerFunctions {
     ): List<SubscriptionStatus>
 
     /**
-     * Transfer subscription to this account posts
+     * Register a one-time product with the server and return results.
+     */
+    suspend fun registerOtp(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus>
+
+    /**
+     * Transfer subscription to this account posts.
      */
     suspend fun transferSubscription(
         product: String,
@@ -88,12 +113,28 @@ interface ServerFunctions {
     suspend fun unregisterInstanceId(instanceId: String)
 
     /**
-     * Send a purchase object to server for acknowledgement.
+     * Send a subscription purchase object to server for acknowledgement.
      */
     suspend fun acknowledgeSubscription(
         product: String,
         purchaseToken: String
     ): List<SubscriptionStatus>
+
+    /**
+     * Send a one-time product purchase object to server for acknowledgement.
+     */
+    suspend fun acknowledgeOtp(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus>
+
+    /**
+     * Send a one-time product purchase object to server for consumption.
+     */
+    suspend fun consumeOtp(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus>
 
     companion object {
         @Volatile
