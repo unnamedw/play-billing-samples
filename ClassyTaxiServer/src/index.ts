@@ -17,12 +17,13 @@
 import * as firebase from 'firebase-admin';
 firebase.initializeApp();
 
-import { content_basic, content_premium } from './controller/functions/content'
+import { content_basic, content_premium, content_otp } from './controller/functions/content'
 import { subscription_register, subscription_status, subscription_transfer, acknowledge_purchase,realtime_notification_listener } from './controller/functions/subscription'
+import { otp_register, otp_status, otp_acknowledge, otp_consume } from './controller/functions/one_time_product'
 import { instanceId_register, instanceId_unregister } from './controller/functions/instance_id'
 
 /*
- * This file is the main entrace for Cloud Functions for Firebase.
+ * This file is the main entrance for Cloud Functions for Firebase.
  * It exposes functions that will be deployed to the backend
  */
 
@@ -34,6 +35,10 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'content_basic')
 
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'content_premium') {
   exports.content_premium = content_premium;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'content_otp') {
+  exports.content_otp = content_otp;
 }
 
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'subscription_register') {
@@ -62,4 +67,20 @@ if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'instanceId_unre
 
 if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'acknowledge_purchase') {
   exports.acknowledge_purchase = acknowledge_purchase;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'otp_register') {
+  exports.otp_register = otp_register;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'otp_status') {
+  exports.otp_status = otp_status;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'otp_acknowledge') {
+  exports.otp_acknowledge = otp_acknowledge;
+}
+
+if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === 'otp_consume') {
+  exports.otp_consume = otp_consume;
 }

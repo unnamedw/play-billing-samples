@@ -43,10 +43,17 @@
    consumptionState: number;
    orderId: string;
    purchaseType?: number;
+   quantity: number;
+   acknowledgementState: number;
+
+   // These methods below are convenient utilities that developers can use to interpret Play Developer API response
+   isAcknowledged(): boolean;
+   isConsumed(): boolean;
+   isEntitlementActive(): boolean;
  }
 
  /*
-  * Respresenting a recurring subscription purchase made via Google Play Billing
+  * Representing a recurring subscription purchase made via Google Play Billing
   * It exposes the raw response received from Google Play Developer API,
   * and adds some util methods that interprets the API response to a more human-friendly format.
   */

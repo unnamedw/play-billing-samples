@@ -18,6 +18,7 @@ const firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
 const projectId = firebaseConfig.projectId;
 const basicContentUrl = `https://${projectId}.firebaseapp.com/content/basic.jpg`;
 const premiumContentUrl = `https://${projectId}.firebaseapp.com/content/premium.jpg`;
+const otpContentUrl = `https://${projectId}.firebaseapp.com/content/otp.jpg`;
 
 /* Content is the interface defining content of subscription plan
  * In this sample, it's just an url to an image.
@@ -44,5 +45,11 @@ export class ContentManager {
     // License: Creative Commons CC0
     // From: https://cdn.pixabay.com/photo/2014/09/19/08/23/symbol-451842_960_720.png
     return {url: premiumContentUrl}
+  }
+
+  getOtpContent(): Content {
+    // License: Creative Commons CC0
+    // From: https://cdn.pixabay.com/photo/2014/09/19/08/23/symbol-451842_960_720.png
+    return {url: otpContentUrl}
   }
 }

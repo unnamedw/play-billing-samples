@@ -20,6 +20,7 @@ import { playBilling, contentManager, verifyFirebaseAuthIdToken, sendHttpsError 
 
 const BASIC_PLAN_PRODUCT = functions.config().app.basic_plan_product;
 const PREMIUM_PLAN_PRODUCT = functions.config().app.premium_plan_product;
+const OTP_PRODUCT = functions.config().app.otp_plan_product;
 
 /* This file contains implementation of functions related to content serving.
 * Each functions checks if the active user have access to the subscribed content,
@@ -63,6 +64,24 @@ export const content_premium = functions.https.onRequest(async (request, respons
     });
 });
 
+/* HTTPS request that serves OTP content to the client
+*
+* @param {Request} request
+* @param {Response} response
+*/
+export const content_otp = functions.https.onRequest(async (request, response) => {
+  return verifyFirebaseAuthIdToken(request, response)
+    .then(async (decodedToken) => {
+      const uid = decodedToken.uid;
+      await verifyOtpOwnershipAsync(uid, [OTP_PRODUCT]);
+
+      const data = contentManager.getOtpContent();
+      response.send(data);
+    }).catch((error: functions.https.HttpsError) => {
+      sendHttpsError(error, response)
+    });
+});
+
 /* Util function that verifies if current user owns at least one active purchases listed in products
 */
 async function verifySubscriptionOwnershipAsync(uid: string, products: Array<string>): Promise<void> {
@@ -78,5 +97,20 @@ async function verifySubscriptionOwnershipAsync(uid: string, products: Array<str
 
   if (!doesUserHaveTheProduct) {
     throw new functions.https.HttpsError('permission-denied', 'Valid subscription not found');
+  }
+}
+
+/* Util function that verifies if current user owns at least one active purchases listed in OTP products
+*/
+async function verifyOtpOwnershipAsync(uid: string, products: Array<string>): Promise<void> {
+  const purchaseList = await playBilling.users().queryCurrentOneTimeProductPurchases(uid)
+    .catch(err => {
+      console.error(err.message);
+      throw new functions.https.HttpsError('internal', 'Internal server error');
+    });
+
+  const isUserHavingTheProduct = purchaseList.some(purchase => ((products.indexOf(purchase.product) > -1) && (purchase.isEntitlementActive())));
+  if (!isUserHavingTheProduct) {
+    throw new functions.https.HttpsError('permission-denied', 'Valid one-time product purchase not found');
   }
 }

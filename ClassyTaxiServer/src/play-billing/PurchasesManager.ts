@@ -19,8 +19,10 @@
  import { PurchaseQueryError, PurchaseUpdateError } from "./types/errors";
  import { OneTimeProductPurchaseImpl, mergePurchaseWithFirestorePurchaseRecord, SubscriptionPurchaseImpl, SubscriptionPurchaseImplV2 } from "./internal/purchases_impl";
  import { DeveloperNotification, NotificationType } from "./types/notifications";
+ import * as functions from 'firebase-functions';
 
  const REPLACED_PURCHASE_USERID_PLACEHOLDER = 'invalid';
+ const OTP_PRODUCT = functions.config().app.otp_plan_product;
 
  /*
   * A class that provides user-purchase linking features
@@ -466,7 +468,7 @@
 
    /**
     * Uses [subscriptions.acknowledge]{@link https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.subscriptions/acknowledge}
-    * to acknowledge new subcription purchases.
+    * to acknowledge new subscription purchases.
     *
     * @param packageName
     * @param product
@@ -481,6 +483,64 @@
            this.convertPlayAPIErrorToLibraryError(err);
          } else {
            result.data;
+         }})
+     } catch (err) {
+       const libraryError = new Error(err.message);
+       throw libraryError;
+     }
+   }
+
+    /**
+     * Uses [products.consume]{@link https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.products/consume}
+     * to consume new one-time product purchases.
+     *
+     * @param packageName
+     * @param product
+     * @param purchaseToken
+     */
+    async consumePurchase(packageName: string, product: string, purchaseToken:string){
+      try { await this.playDeveloperApiClient.purchases.products.consume({
+        packageName: packageName,
+        productId: product,
+        token: purchaseToken}, async (err, result) => {
+          if (err) {
+            console.log("err: ", err.message)
+            this.convertPlayAPIErrorToLibraryError(err);
+          } else {
+            result.data;
+            console.log("result.data after consume: ", result.data)
+            if (product === OTP_PRODUCT) {
+              console.log("OTP was consumed");
+              await this.purchasesDbRef.doc(purchaseToken).update({consumptionState: 1});
+            }
+          }})
+      } catch (err) {
+        const libraryError = new Error(err.message);
+        throw libraryError;
+      }
+    }
+
+   /**
+    * Uses [products.acknowledge]{@link https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.products/acknowledge}
+    * to acknowledge new one-time product purchases.
+    *
+    * @param packageName
+    * @param product
+    * @param purchaseToken
+    */
+   async acknowledgeOtpPurchase(packageName: string, product: string, purchaseToken:string){
+     try { await this.playDeveloperApiClient.purchases.products.acknowledge({
+       packageName: packageName,
+       productId: product,
+       token: purchaseToken}, async (err, result) => {
+         if (err) {
+           this.convertPlayAPIErrorToLibraryError(err);
+         } else {
+           result.data;
+           if (product === OTP_PRODUCT) {
+             console.log("OTP was acknowledged");
+             await this.purchasesDbRef.doc(purchaseToken).update({acknowledgementState: 1});
+           }
          }})
      } catch (err) {
        const libraryError = new Error(err.message);

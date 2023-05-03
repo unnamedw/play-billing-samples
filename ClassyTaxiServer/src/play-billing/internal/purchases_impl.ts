@@ -60,6 +60,8 @@ export class OneTimeProductPurchaseImpl implements OneTimeProductPurchase {
   consumptionState: number;
   orderId: string;
   purchaseType: number;
+  quantity: number;
+  acknowledgementState: number;
 
   // Library-managed Purchase properties
   packageName: string;
@@ -104,6 +106,19 @@ export class OneTimeProductPurchaseImpl implements OneTimeProductPurchase {
     // Only allow user to register one time product purchases that has not been consumed or canceled.
     return (this.purchaseState === 0) && (this.consumptionState === 0);
   }
+
+  isAcknowledged(): boolean {
+    return (this.acknowledgementState === 1);
+  }
+
+  isConsumed(): boolean {
+    return (this.consumptionState === 1);
+  }
+
+  isEntitlementActive(): boolean {
+    return (this.purchaseState === 0 && this.consumptionState === 0);
+  }
+
 }
 
 /* Library's internal implementation of an SubscriptionPurchase object

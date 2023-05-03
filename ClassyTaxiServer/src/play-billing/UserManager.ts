@@ -15,8 +15,8 @@
  */
  import { CollectionReference } from "@google-cloud/firestore";
  import PurchaseManager from "./PurchasesManager";
- import { SubscriptionPurchase, ProductType, SubscriptionPurchaseV2 } from "./types/purchases";
- import { GOOGLE_PLAY_FORM_OF_PAYMENT, SubscriptionPurchaseImpl, SubscriptionPurchaseImplV2} from "./internal/purchases_impl";
+ import { SubscriptionPurchase, OneTimeProductPurchase, ProductType, SubscriptionPurchaseV2 } from "./types/purchases";
+ import { GOOGLE_PLAY_FORM_OF_PAYMENT, SubscriptionPurchaseImpl, SubscriptionPurchaseImplV2, OneTimeProductPurchaseImpl } from "./internal/purchases_impl";
  import { PurchaseQueryError } from "./types/errors";
 
  /*
@@ -83,4 +83,54 @@
        throw libraryError;
      }
    }
+
+   /*
+   * Query OTPs registered to a particular user
+   * Note: Other OTPs which don't meet the above criteria still exists in Firestore purchase records, but not accessible from outside of the library.
+   */
+  async queryCurrentOneTimeProductPurchases(userId: string, product?: string, packageName?: string): Promise<Array<OneTimeProductPurchase>> {
+    const purchaseList = new Array<OneTimeProductPurchase>();
+
+    try {
+      // Create query to fetch possibly active OTPs from Firestore
+      let query = this.purchasesDbRef
+        .where('formOfPayment', '==', GOOGLE_PLAY_FORM_OF_PAYMENT)
+        .where('productType', '==', ProductType.ONE_TIME)
+        .where('userId', '==', userId)
+
+      if (product) {
+        query = query.where('product', '==', product);
+      }
+
+      if (packageName) {
+        query = query.where('packageName', '==', packageName);
+      }
+
+      // Do fetch possibly active subscription from Firestore
+      const queryResult = await query.get();
+
+      // Loop through these subscriptions and filter those that are indeed active
+      for (const purchaseRecordSnapshot of queryResult.docs) {
+        let purchase: OneTimeProductPurchase = OneTimeProductPurchaseImpl.fromFirestoreObject(purchaseRecordSnapshot.data())
+
+        if (!purchase.isEntitlementActive()) {
+          console.log('Updating cached purchase record for token = ', purchase.purchaseToken);
+          purchase = await this.purchaseManager.queryOneTimeProductPurchase(purchase.packageName, purchase.product, purchase.purchaseToken);
+        }
+
+        // Add the updated purchase to list to returned to clients
+        if (purchase.isEntitlementActive()) {
+          purchaseList.push(purchase);
+        }
+      }
+
+      return purchaseList;
+
+    } catch (err) {
+      console.error('Error querying purchase records from Firestore. \n', err.message);
+      const libraryError = new Error(err.message);
+      libraryError.name = PurchaseQueryError.OTHER_ERROR;
+      throw libraryError;
+    }
+  }
  }
