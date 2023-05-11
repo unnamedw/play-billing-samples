@@ -1,13 +1,13 @@
-Classy Taxi: Google Play Billing Subscriptions Android App Kotlin Sample
+Classy Taxi: Google Play Billing Android App Kotlin Sample
 =====================================================
 
-This is the ClassyTaxi Kotlin Android app to buy subscriptions.
+This is the ClassyTaxi Kotlin Android app to buy subscriptions and one-time products.
 
-Classy Taxi is an end-to-end project that highlights subscription features on Google Play Billing,
+Classy Taxi is an end-to-end project that highlights subscription and one-time product features on Google Play Billing,
 such as Real-time Developer Notifications, account hold, grace period, and more. The code has 3
-major components: an **Android app** to buy subscriptions,
+major components: an **Android app** to buy subscriptions and one-time products,
 a **[Node.js server](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiServer)**
-to manage subscriptions, and a
+to manage subscriptions and one-time products, and a
 read-only **[web client](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiAppWeb)**
 to access the subscriptions on multiple platforms.
 
@@ -20,7 +20,7 @@ to access the subscriptions on multiple platforms.
 # What do I need?
 
 * A [Google Play Developer Account](https://developer.android.com/distribute/console/) to publish
-  the app and manage subscriptions
+  the app and manage subscriptions and one-time products
 
 * A [Firebase project](https://firebase.google.com/) to deploy the server implementation on
   [Cloud Functions for Firebase](https://firebase.google.com/docs/functions/), enable sign-in, and
@@ -175,24 +175,27 @@ Firebase configuration
 
 1. Create an application on [Google Play Developer Console](https://play.google.com/console)
 
-1. Upload and publish the release App Bundle/APK to the Internal testing, Closed testing, 
+2. Upload and publish the release App Bundle/APK to the Internal testing, Closed testing,
    Open testing, or Production track
 
     * See [Create and set up your app](https://support.google.com/googleplay/android-developer/answer/113469).
 
-1. [Create subscription products](https://support.google.com/googleplay/android-developer/answer/140504) 
-   for a Basic Subscription and Premium Subscription
+3. [Create subscriptions](https://support.google.com/googleplay/android-developer/answer/140504) and
+   [one-time products](https://support.google.com/googleplay/android-developer/answer/1153481)
+   for a basic subscription, premium subscription, and one-time product]
 
-    * The Android app `Constants.kt` contains 2 products: `"basic_subscription"`
-      and `"premium_subscription"`. `Constants.kt` also contains 6 base plan tags to showcase
+    * The Android app `Constants.kt` contains 3 products: `"basic_subscription"`,
+       `"premium_subscription"`, and `"otp"`. `Constants.kt` also contains 6 base plan tags to showcase
       how subscription products can have multiple base plans.
 
-    * Use the 2 products as the Product ID when creating the subscription products and add the tags
+    * Use the 2 subscription products as the Product ID when creating the subscription products and add the tags
     to the appropriate base plans(monthly and yearly auto-renewing base plans, and prepaid base plans).
+
+    * Use the one-time product as the Product ID when creating the one-time products.
 
     * Write down your product IDs so you can configure your backend server.
 
-1. [Link the Google Cloud project to the Google Play Developer Account](https://developers.google.com/android-publisher/getting_started#linking_your_api_project)
+5. [Link the Google Cloud project to the Google Play Developer Account](https://developers.google.com/android-publisher/getting_started#linking_your_api_project)
 
     * Use the Google Cloud Console project that corresponds to your Google Play Developer Account
 
@@ -216,7 +219,7 @@ Firebase configuration
 
         * **View app information and download bulk reports (read-only)**
 
-1. Recommended: Create a license test account
+6. Recommended: Create a license test account
    to [test subscriptions quickly](https://android-developers.googleblog.com/2018/01/faster-renewals-for-test-subscriptions.html)
    without spending money
 
@@ -226,9 +229,9 @@ Firebase configuration
 # Deploy Backend Server
 
 Follow the [steps to deploy the backend server](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiServer)
-* Note: Please take a note of the endpoint server URL/Function URL when your functions are 
-  successfully deployed--You will need it to fill in the settings on Google Cloud Platform Console and 
-  the app's `gradle.properties` file. It should be in this example’s format: 
+* Note: Please take a note of the endpoint server URL/Function URL when your functions are
+  successfully deployed--You will need it to fill in the settings on Google Cloud Platform Console and
+  the app's `gradle.properties` file. It should be in this example’s format:
   `https://{region_name}-{project_name}.cloudfunctions.net`
 
 # Real-time Developer Notifications Setup
@@ -258,6 +261,8 @@ Follow the [steps to deploy the backend server](https://github.com/android/play-
     * Your real-time developer notifications **Topic name** should be in this format
 
         * `projects/{your_firebase_project_id}/topics/play-subs`
+
+    * Note: RTDN is available only for subscriptions for now on the server side in this sample.
 
 # Regenerate and re-upload App
 

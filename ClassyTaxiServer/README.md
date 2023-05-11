@@ -1,7 +1,7 @@
-Classy Taxi: Google Play Billing Subscriptions Server Sample
+Classy Taxi: Google Play Billing Server Sample
 =====================================================
 
-This is the Node.js server that manages subscriptions for the ClassyTaxi
+This is the Node.js server that manages subscriptions and one-time products for the ClassyTaxi
 [Android](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiAppKotlin) and
 [web](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiAppWeb) app.
 
@@ -28,6 +28,8 @@ This is the Node.js server that manages subscriptions for the ClassyTaxi
        firebase functions:config:set app.basic_plan_sku="basic_subscription"
 
        firebase functions:config:set app.premium_plan_sku="premium_subscription"
+
+       firebase functions:config:set app.otp_plan_product="otp"
     ```
 
 1. Install Node packages

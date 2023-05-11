@@ -2,11 +2,11 @@
 
 Sample applications for Google Play Billing. To build each sample, see the README instructions in the project directory.
 
-* [Trivial Drive Java](https://github.com/android/play-billing-samples/tree/master/TrivialDriveJava) - Purchase items/subscriptions in your Android app (serverless).
-* [Trivial Drive Kotlin](https://github.com/android/play-billing-samples/tree/master/TrivialDriveKotlin) - Purchase items/subscriptions in your Android app (serverless).
-* [Classy Taxi Kotlin App](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiAppKotlin) - Purchase subscriptions in your Android app and manage subscriptions on your server.
-* [Classy Taxi Java App](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiJava) - Purchase subscriptions in your Android app and manage subscriptions on your server.
-* [Classy Taxi Server](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiServer) - Manage subscriptions on your server.
+* [Last Updated: May 2021] [Trivial Drive Java](https://github.com/android/play-billing-samples/tree/master/TrivialDriveJava) - Purchase items/subscriptions in your Android app (serverless).
+* [Last Updated: May 2021] [Trivial Drive Kotlin](https://github.com/android/play-billing-samples/tree/master/TrivialDriveKotlin) - Purchase items/subscriptions in your Android app (serverless).
+* [Last Updated: May 2023] [Classy Taxi Kotlin App](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiAppKotlin) - Purchase subscriptions and one-time products in your Android app and manage them on your server.
+* [Last Updated: March 2022] [Classy Taxi Java App](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiJava) - Purchase subscriptions in your Android app and manage subscriptions on your server.
+* [Last Updated: May 2023] [Classy Taxi Server](https://github.com/android/play-billing-samples/tree/master/ClassyTaxiServer) - Manage subscriptions and one-time products on your server.
 
 
 ## Google Play Billing
