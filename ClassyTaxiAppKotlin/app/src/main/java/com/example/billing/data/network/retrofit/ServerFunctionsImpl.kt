@@ -19,14 +19,15 @@ package com.example.billing.data.network.retrofit
 import android.util.Log
 import com.example.billing.BuildConfig.SERVER_URL
 import com.example.billing.data.ContentResource
-import com.example.billing.data.SubscriptionStatus
 import com.example.billing.data.network.firebase.ServerFunctions
 import com.example.billing.data.network.retrofit.authentication.RetrofitClient
+import com.example.billing.data.otps.OneTimeProductPurchaseStatus
+import com.example.billing.data.subscriptions.SubscriptionStatus
+import java.net.HttpURLConnection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import retrofit2.Response
-import java.net.HttpURLConnection
 
 fun <T> Response<T>.errorLog(): String {
     return "Failed to call API (Error code: ${code()}) - ${errorBody()?.string()}"
@@ -37,7 +38,7 @@ fun <T> Response<T>.errorLog(): String {
  */
 class ServerFunctionsImpl : ServerFunctions {
 
-    private val retrofitClient = RetrofitClient(SERVER_URL, SubscriptionStatusApiCall::class.java)
+    private val retrofitClient = RetrofitClient(SERVER_URL, BillingApiCall::class.java)
 
     /**
      * Track the number of pending server requests.
@@ -47,10 +48,12 @@ class ServerFunctionsImpl : ServerFunctions {
     private val _subscriptions = MutableStateFlow(emptyList<SubscriptionStatus>())
     private val _basicContent = MutableStateFlow<ContentResource?>(null)
     private val _premiumContent = MutableStateFlow<ContentResource?>(null)
+    private val _otpContent = MutableStateFlow<ContentResource?>(null)
 
     override val loading: StateFlow<Boolean> = pendingRequestCounter.loading
     override val basicContent = _basicContent.asStateFlow()
     override val premiumContent = _premiumContent.asStateFlow()
+    override val otpContent = _otpContent.asStateFlow()
 
     override suspend fun updateBasicContent() {
         pendingRequestCounter.use {
@@ -66,6 +69,11 @@ class ServerFunctionsImpl : ServerFunctions {
         }
     }
 
+    override suspend fun updateOtpContent() {
+        val response = retrofitClient.getService().fetchOtpContent()
+        _otpContent.emit(response)
+    }
+
     override suspend fun fetchSubscriptionStatus(): List<SubscriptionStatus> {
         pendingRequestCounter.use {
             val response = retrofitClient.getService().fetchSubscriptionStatus()
@@ -74,6 +82,17 @@ class ServerFunctionsImpl : ServerFunctions {
                 throw Exception("Failed to fetch subscriptions from the server")
             }
             return response.body()?.subscriptions.orEmpty()
+        }
+    }
+
+    override suspend fun fetchOtpStatus(): List<OneTimeProductPurchaseStatus> {
+        pendingRequestCounter.use {
+            val response = retrofitClient.getService().fetchOtpStatus()
+            if (!response.isSuccessful) {
+                Log.e(TAG, response.errorLog())
+                throw Exception("Failed to fetch one-time product purchases from the server")
+            }
+            return response.body()?.oneTimeProductPurchases.orEmpty()
         }
     }
 
@@ -109,6 +128,29 @@ class ServerFunctionsImpl : ServerFunctions {
         }
     }
 
+    override suspend fun registerOtp(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus> {
+        val data = OneTimeProductPurchaseStatus(
+            product = product,
+            purchaseToken = purchaseToken
+        )
+        pendingRequestCounter.use {
+            val response = retrofitClient.getService().registerOtp(data)
+            if (response.isSuccessful && response.body() != null) {
+                return response.body()?.oneTimeProductPurchases.orEmpty()
+            } else {
+                if (response.code() == HttpURLConnection.HTTP_CONFLICT) {
+                    return emptyList()
+                } else {
+                    Log.e(TAG, response.errorLog())
+                    throw Exception("Failed to register one-time product purchase")
+                }
+            }
+        }
+    }
+
     override suspend fun transferSubscription(product: String, purchaseToken: String):
             List<SubscriptionStatus> {
         val data = SubscriptionStatus().also {
@@ -117,7 +159,7 @@ class ServerFunctionsImpl : ServerFunctions {
         }
         pendingRequestCounter.use {
             val response = retrofitClient.getService().transferSubscription(data)
-            return response.subscriptions.orEmpty()
+            return response.body()?.subscriptions.orEmpty()
         }
     }
 
@@ -151,6 +193,44 @@ class ServerFunctionsImpl : ServerFunctions {
                 throw Exception("Failed to fetch subscriptions from the server")
             }
             return response.body()?.subscriptions.orEmpty()
+        }
+    }
+
+    override suspend fun acknowledgeOtp(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus> {
+        val data = OneTimeProductPurchaseStatus(
+            product = product,
+            purchaseToken = purchaseToken
+        )
+        pendingRequestCounter.use {
+            val response = retrofitClient.getService().acknowledgeOtp(data)
+
+            if (!response.isSuccessful) {
+                Log.e(TAG, response.errorLog())
+                throw Exception("Failed to fetch one-time products purchases from the server")
+            }
+            return response.body()?.oneTimeProductPurchases.orEmpty()
+        }
+    }
+
+    override suspend fun consumeOtp(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus> {
+        val data = OneTimeProductPurchaseStatus(
+            product = product,
+            purchaseToken = purchaseToken
+        )
+        pendingRequestCounter.use {
+            val response = retrofitClient.getService().consumeOtp(data)
+
+            if (!response.isSuccessful) {
+                Log.e(TAG, response.errorLog())
+                throw Exception("Failed to fetch one-time products from the server")
+            }
+            return response.body()?.oneTimeProductPurchases.orEmpty()
         }
     }
 

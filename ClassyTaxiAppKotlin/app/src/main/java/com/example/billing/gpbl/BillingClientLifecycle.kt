@@ -51,13 +51,21 @@ class BillingClientLifecycle private constructor(
 ) : DefaultLifecycleObserver, PurchasesUpdatedListener, BillingClientStateListener,
     ProductDetailsResponseListener, PurchasesResponseListener {
 
-    private val _purchases = MutableStateFlow<List<Purchase>>(emptyList())
+    private val _subscriptionPurchases = MutableStateFlow<List<Purchase>>(emptyList())
+    private val _oneTimeProductPurchases = MutableStateFlow<List<Purchase>>(emptyList())
 
     /**
      * Purchases are collectable. This list will be updated when the Billing Library
      * detects new or existing purchases.
      */
-    val purchases = _purchases.asStateFlow()
+    val subscriptionPurchases = _subscriptionPurchases.asStateFlow()
+
+    val oneTimeProductPurchases = _oneTimeProductPurchases.asStateFlow()
+
+    /**
+     * Cached in-app product purchases details.
+     */
+    private var cachedPurchasesList: List<Purchase>? = null
 
     /**
      * ProductDetails for all known products.
@@ -65,6 +73,8 @@ class BillingClientLifecycle private constructor(
     val premiumSubProductWithProductDetails = MutableLiveData<ProductDetails?>()
 
     val basicSubProductWithProductDetails = MutableLiveData<ProductDetails?>()
+
+    val oneTimeProductWithProductDetails = MutableLiveData<ProductDetails?>()
 
     /**
      * Instantiate a new BillingClient instance.
@@ -103,8 +113,10 @@ class BillingClientLifecycle private constructor(
         if (responseCode == BillingClient.BillingResponseCode.OK) {
             // The billing client is ready.
             // You can query product details and purchases here.
-            queryProductDetails()
-            queryPurchases()
+            querySubscriptionProductDetails()
+            queryOneTimeProductDetails()
+            querySubscriptionPurchases()
+            queryOneTimeProductPurchases()
         }
     }
 
@@ -118,17 +130,17 @@ class BillingClientLifecycle private constructor(
      * In order to make purchases, you need the [ProductDetails] for the item or subscription.
      * This is an asynchronous call that will receive a result in [onProductDetailsResponse].
      *
-     * queryProductDetails uses method calls from GPBL 5.0.0. PBL5, released in May 2022,
+     * querySubscriptionProductDetails uses method calls from GPBL 5.0.0. PBL5, released in May 2022,
      * is backwards compatible with previous versions.
      * To learn more about this you can read:
      * https://developer.android.com/google/play/billing/compatibility
      */
-    private fun queryProductDetails() {
-        Log.d(TAG, "queryProductDetails")
+    private fun querySubscriptionProductDetails() {
+        Log.d(TAG, "querySubscriptionProductDetails")
         val params = QueryProductDetailsParams.newBuilder()
 
         val productList: MutableList<QueryProductDetailsParams.Product> = arrayListOf()
-        for (product in LIST_OF_PRODUCTS) {
+        for (product in LIST_OF_SUBSCRIPTION_PRODUCTS) {
             productList.add(
                 QueryProductDetailsParams.Product.newBuilder()
                     .setProductId(product)
@@ -138,14 +150,40 @@ class BillingClientLifecycle private constructor(
         }
 
         params.setProductList(productList).let { productDetailsParams ->
-            Log.i(TAG, "queryProductDetailsAsync")
             billingClient.queryProductDetailsAsync(productDetailsParams.build(), this)
         }
 
     }
 
     /**
-     * Receives the result from [queryProductDetails].
+     * In order to make purchases, you need the [ProductDetails] for one-time product.
+     * This is an asynchronous call that will receive a result in [onProductDetailsResponse].
+     *
+     * queryOneTimeProductDetails uses the [BillingClient.queryProductDetailsAsync] method calls
+     * from GPBL 5.0.0. PBL5, released in May 2022, is backwards compatible with previous versions.
+     * To learn more about this you can read:
+     * https://developer.android.com/google/play/billing/compatibility
+     */
+    private fun queryOneTimeProductDetails() {
+        Log.d(TAG, "queryOneTimeProductDetails")
+        val params = QueryProductDetailsParams.newBuilder()
+
+        val productList = LIST_OF_ONE_TIME_PRODUCTS.map { product ->
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(product)
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build()
+        }
+
+        params.apply {
+            setProductList(productList)
+        }.let { productDetailsParams ->
+            billingClient.queryProductDetailsAsync(productDetailsParams.build(), this)
+        }
+    }
+
+    /**
+     * Receives the result from [querySubscriptionProductDetails].
      *
      * Store the ProductDetails and post them in the [basicSubProductWithProductDetails] and
      * [premiumSubProductWithProductDetails]. This allows other parts of the app to use the
@@ -169,7 +207,10 @@ class BillingClientLifecycle private constructor(
 
             response.isTerribleFailure -> {
                 // These response codes are not expected.
-                Log.wtf(TAG, "onProductDetailsResponse: ${response.code} $debugMessage")
+                Log.w(
+                    TAG,
+                    "onProductDetailsResponse - Unexpected error: ${response.code} $debugMessage"
+                )
             }
 
             else -> {
@@ -188,7 +229,7 @@ class BillingClientLifecycle private constructor(
      *
      */
     private fun processProductDetails(productDetailsList: MutableList<ProductDetails>) {
-        val expectedProductDetailsCount = LIST_OF_PRODUCTS.size
+        val expectedProductDetailsCount = LIST_OF_SUBSCRIPTION_PRODUCTS.size
         if (productDetailsList.isEmpty()) {
             Log.e(
                 TAG, "processProductDetails: " +
@@ -220,25 +261,48 @@ class BillingClientLifecycle private constructor(
                         basicSubProductWithProductDetails.postValue(productDetails)
                     }
                 }
+
+                BillingClient.ProductType.INAPP -> {
+                    if (productDetails.productId == Constants.ONE_TIME_PRODUCT) {
+                        oneTimeProductWithProductDetails.postValue(productDetails)
+                    }
+                }
             }
         }
     }
 
-
     /**
-     * Query Google Play Billing for existing purchases.
+     * Query Google Play Billing for existing subscription purchases.
      *
      * New purchases will be provided to the PurchasesUpdatedListener.
      * You still need to check the Google Play Billing API to know when purchase tokens are removed.
      */
-    fun queryPurchases() {
+    fun querySubscriptionPurchases() {
         if (!billingClient.isReady) {
-            Log.e(TAG, "queryPurchases: BillingClient is not ready")
+            Log.e(TAG, "querySubscriptionPurchases: BillingClient is not ready")
             billingClient.startConnection(this)
         }
         billingClient.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder()
                 .setProductType(BillingClient.ProductType.SUBS)
+                .build(), this
+        )
+    }
+
+    /**
+     * Query Google Play Billing for existing one-time product purchases.
+     *
+     * New purchases will be provided to the PurchasesUpdatedListener.
+     * You still need to check the Google Play Billing API to know when purchase tokens are removed.
+     */
+    fun queryOneTimeProductPurchases() {
+        if (!billingClient.isReady) {
+            Log.e(TAG, "queryOneTimeProductPurchases: BillingClient is not ready")
+            billingClient.startConnection(this)
+        }
+        billingClient.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.INAPP)
                 .build(), this
         )
     }
@@ -299,23 +363,38 @@ class BillingClientLifecycle private constructor(
      */
     private fun processPurchases(purchasesList: List<Purchase>?) {
         Log.d(TAG, "processPurchases: ${purchasesList?.size} purchase(s)")
-        if (purchasesList == null || isUnchangedPurchaseList(purchasesList)) {
-            Log.d(TAG, "processPurchases: Purchase list has not changed")
-            return
+        purchasesList?.let { list ->
+            if (isUnchangedPurchaseList(list)) {
+                Log.d(TAG, "processPurchases: Purchase list has not changed")
+                return
+            }
+            externalScope.launch {
+                val subscriptionPurchaseList = list.filter { purchase ->
+                    purchase.products.any { product ->
+                        product in listOf(Constants.PREMIUM_PRODUCT, Constants.BASIC_PRODUCT)
+                    }
+                }
+
+                val oneTimeProductPurchaseList = list.filter { purchase ->
+                    purchase.products.contains(Constants.ONE_TIME_PRODUCT)
+                }
+
+                _oneTimeProductPurchases.emit(oneTimeProductPurchaseList)
+                _subscriptionPurchases.emit(subscriptionPurchaseList)
+            }
+            logAcknowledgementStatus(list)
         }
-        externalScope.launch {
-            _purchases.emit(purchasesList)
-        }
-        logAcknowledgementStatus(purchasesList)
     }
 
     /**
      * Check whether the purchases have changed before posting changes.
      */
-    @Suppress("UNUSED_PARAMETER")
     private fun isUnchangedPurchaseList(purchasesList: List<Purchase>): Boolean {
-        // TODO: Optimize to avoid updates with identical data.
-        return false
+        val isUnchanged = purchasesList == cachedPurchasesList
+        if (!isUnchanged) {
+            cachedPurchasesList = purchasesList
+        }
+        return isUnchanged
     }
 
     /**
@@ -439,9 +518,13 @@ class BillingClientLifecycle private constructor(
         private const val TAG = "BillingLifecycle"
         private const val MAX_RETRY_ATTEMPT = 3
 
-        private val LIST_OF_PRODUCTS = listOf(
+        private val LIST_OF_SUBSCRIPTION_PRODUCTS = listOf(
             Constants.BASIC_PRODUCT,
             Constants.PREMIUM_PRODUCT,
+        )
+
+        private val LIST_OF_ONE_TIME_PRODUCTS = listOf(
+            Constants.ONE_TIME_PRODUCT,
         )
 
         @Volatile

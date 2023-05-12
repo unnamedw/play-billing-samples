@@ -25,7 +25,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.android.billingclient.api.Purchase
 import com.example.billing.Constants
 import com.example.billing.R
-import com.example.billing.SubApp
+import com.example.billing.BillingApp
 import com.example.billing.gpbl.BillingClientLifecycle
 import com.firebase.ui.auth.AuthUI
 
@@ -61,7 +61,7 @@ class TvMainActivity : FragmentActivity() {
             ViewModelProvider(this).get(SubscriptionStatusViewModel::class.java)
 
         // Billing APIs are all handled in the this lifecycle observer.
-        billingClientLifecycle = (application as SubApp).billingClientLifecycle
+        billingClientLifecycle = (application as BillingApp).billingClientLifecycle
         lifecycle.addObserver(billingClientLifecycle)
 
         // Launch the billing flow when the user clicks a button to buy something.
@@ -97,7 +97,7 @@ class TvMainActivity : FragmentActivity() {
         // Update subscription information when user changes.
         authenticationViewModel.userChangeEvent.observe(this) {
             subscriptionViewModel.userChanged()
-            registerPurchases(billingClientLifecycle.purchases.value)
+            registerPurchases(billingClientLifecycle.subscriptionPurchases.value)
         }
     }
 

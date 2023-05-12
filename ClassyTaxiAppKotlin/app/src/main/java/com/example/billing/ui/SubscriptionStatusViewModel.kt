@@ -20,9 +20,9 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.billing.SubApp
-import com.example.billing.data.SubRepository
-import com.example.billing.data.SubscriptionStatus
+import com.example.billing.BillingApp
+import com.example.billing.data.BillingRepository
+import com.example.billing.data.subscriptions.SubscriptionStatus
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +37,7 @@ class SubscriptionStatusViewModel(
 ) : AndroidViewModel(application) {
 
     // TODO this should be moved to constructor param and injected by Hilt
-    private val repository: SubRepository = (application as SubApp).repository
+    private val repository: BillingRepository = (application as BillingApp).repository
 
     private val _currentSubscription = MutableStateFlow(CurrentSubscription.NONE)
     val currentSubscription = _currentSubscription.asStateFlow()
@@ -76,7 +76,7 @@ class SubscriptionStatusViewModel(
      */
     val premiumContent = repository.premiumContent
 
-    // TODO show UI status in View
+    // TODO show status in UI
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage = _errorMessage.asStateFlow()
 
@@ -134,10 +134,15 @@ class SubscriptionStatusViewModel(
                 }
             })
             repository.fetchSubscriptions()
+            repository.fetchOneTimeProductPurchases()
         }
     }
 
     fun manualRefresh() {
+        viewModelScope.launch {
+            repository.queryProducts()
+        }
+
         viewModelScope.launch {
             val result = repository.fetchSubscriptions()
             if (result.isFailure) {

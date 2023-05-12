@@ -24,7 +24,7 @@ import com.example.billing.gpbl.isGracePeriod
 import com.example.billing.gpbl.isPaused
 import com.example.billing.gpbl.isPremiumContent
 import com.example.billing.gpbl.isSubscriptionRestore
-import com.example.billing.data.SubscriptionStatus
+import com.example.billing.data.subscriptions.SubscriptionStatus
 
 /**
  * Return the resource string for the basic subscription button.

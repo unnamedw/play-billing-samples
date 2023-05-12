@@ -20,7 +20,8 @@ import com.example.billing.Constants
 import com.example.billing.gpbl.isBasicContent
 import com.example.billing.gpbl.isPremiumContent
 import com.example.billing.data.ContentResource
-import com.example.billing.data.SubscriptionStatus
+import com.example.billing.data.otps.OneTimeProductPurchaseStatus
+import com.example.billing.data.subscriptions.SubscriptionStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,13 +29,15 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * Fake implementation of [ServerFunctions].
  */
-class FakeServerFunctions : ServerFunctions {
+class FakeServerFunctions: ServerFunctions {
     private var subscriptions: List<SubscriptionStatus> = emptyList()
     private val _basicContent = MutableStateFlow<ContentResource?>(null)
     private val _premiumContent = MutableStateFlow<ContentResource?>(null)
+    private val _otpContent = MutableStateFlow<ContentResource?>(null)
 
     override val basicContent = _basicContent.asStateFlow()
     override val premiumContent = _premiumContent.asStateFlow()
+    override val otpContent = _otpContent.asStateFlow()
     override val loading: StateFlow<Boolean> = MutableStateFlow(false)
 
     /**
@@ -70,6 +73,10 @@ class FakeServerFunctions : ServerFunctions {
         }
     }
 
+    override suspend fun updateOtpContent() {
+        TODO("Not yet implemented")
+    }
+
     /**
      * Fetches fake subscription data and posts successful results to [subscriptions].
      */
@@ -80,6 +87,10 @@ class FakeServerFunctions : ServerFunctions {
             }
         }
         return subscriptions
+    }
+
+    override suspend fun fetchOtpStatus(): List<OneTimeProductPurchaseStatus> {
+        TODO("Not yet implemented")
     }
 
     override suspend fun registerSubscription(product: String, purchaseToken: String):
@@ -95,6 +106,13 @@ class FakeServerFunctions : ServerFunctions {
         }
         subscriptions = result
         return result
+    }
+
+    override suspend fun registerOtp(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus> {
+        TODO("Not yet implemented")
     }
 
     override suspend fun transferSubscription(product: String, purchaseToken: String):
@@ -115,6 +133,20 @@ class FakeServerFunctions : ServerFunctions {
         product: String,
         purchaseToken: String
     ): List<SubscriptionStatus> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun acknowledgeOtp(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun consumeOtp(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus> {
         TODO("Not yet implemented")
     }
 

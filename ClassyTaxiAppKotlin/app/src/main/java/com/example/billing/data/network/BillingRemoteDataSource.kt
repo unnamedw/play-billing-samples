@@ -16,15 +16,16 @@
 
 package com.example.billing.data.network
 
-import com.example.billing.data.SubscriptionStatus
 import com.example.billing.data.network.firebase.ServerFunctions
+import com.example.billing.data.otps.OneTimeProductPurchaseStatus
+import com.example.billing.data.subscriptions.SubscriptionStatus
 import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Execute network requests on the network thread.
  * Fetch data from a remote server object.
  */
-class SubRemoteDataSource private constructor(
+class BillingRemoteDataSource private constructor(
     private val serverFunctions: ServerFunctions
 ) {
     /**
@@ -34,14 +35,19 @@ class SubRemoteDataSource private constructor(
         get() = serverFunctions.loading
 
     /**
-     * Live Data with the basic content.
+     * State Flow with the basic subscription content.
      */
     val basicContent = serverFunctions.basicContent
 
     /**
-     * Live Data with the premium content.
+     * State Flow with the premium subscription content.
      */
     val premiumContent = serverFunctions.premiumContent
+
+    /**
+     * State Flow with the one-time product content.
+     */
+    val otpContent = serverFunctions.otpContent
 
     /**
      * GET basic content.
@@ -54,9 +60,19 @@ class SubRemoteDataSource private constructor(
     suspend fun updatePremiumContent() = serverFunctions.updatePremiumContent()
 
     /**
+     * GET one-time product content.
+     */
+    suspend fun updateOtpContent() = serverFunctions.updateOtpContent()
+
+    /**
      * GET request for subscription status.
      */
     suspend fun fetchSubscriptionStatus() = serverFunctions.fetchSubscriptionStatus()
+
+    /**
+     * GET request for one-time product status.
+     */
+    suspend fun fetchOneTimeProductPurchaseStatus() = serverFunctions.fetchOtpStatus()
 
     /**
      * POST request to register subscription.
@@ -66,6 +82,19 @@ class SubRemoteDataSource private constructor(
         purchaseToken: String
     ): List<SubscriptionStatus> {
         return serverFunctions.registerSubscription(
+            product = product,
+            purchaseToken = purchaseToken
+        )
+    }
+
+    /**
+     * POST request to register one-time product.
+     */
+    suspend fun registerOneTimeProductPurchase(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus> {
+        return serverFunctions.registerOtp(
             product = product,
             purchaseToken = purchaseToken
         )
@@ -105,16 +134,42 @@ class SubRemoteDataSource private constructor(
         )
     }
 
+    /**
+     * POST request to acknowledge a one-time product.
+     */
+    suspend fun postAcknowledgeOneTimeProductPurchase(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus> {
+        return serverFunctions.acknowledgeOtp(
+            product = product,
+            purchaseToken = purchaseToken
+        )
+    }
+
+    /**
+     * POST request to consume a one-time product.
+     */
+    suspend fun postConsumeOneTimeProductPurchase(
+        product: String,
+        purchaseToken: String
+    ): List<OneTimeProductPurchaseStatus> {
+        return serverFunctions.consumeOtp(
+            product = product,
+            purchaseToken = purchaseToken
+        )
+    }
+
 
     companion object {
         @Volatile
-        private var INSTANCE: SubRemoteDataSource? = null
+        private var INSTANCE: BillingRemoteDataSource? = null
 
         fun getInstance(
             callableFunctions: ServerFunctions
-        ): SubRemoteDataSource =
+        ): BillingRemoteDataSource =
             INSTANCE ?: synchronized(this) {
-                INSTANCE ?: SubRemoteDataSource(callableFunctions).also { INSTANCE = it }
+                INSTANCE ?: BillingRemoteDataSource(callableFunctions).also { INSTANCE = it }
             }
     }
 }

@@ -17,8 +17,8 @@
 package com.example.billing.data.network.firebase
 
 import android.util.Log
-import com.example.billing.SubApp
-import com.example.billing.data.SubscriptionStatusList
+import com.example.billing.BillingApp
+import com.example.billing.data.subscriptions.SubscriptionStatusList
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.google.gson.Gson
@@ -28,7 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class SubscriptionMessageService : FirebaseMessagingService() {
+class BillingMessageService : FirebaseMessagingService() {
     private val gson: Gson = GsonBuilder().create()
     private val externalScope: CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -47,7 +47,7 @@ class SubscriptionMessageService : FirebaseMessagingService() {
                     Log.e(TAG, "Invalid subscription data")
                 } else {
                     Log.i(TAG, "onMessageReceived - ${result.subscriptions} ")
-                    val app = application as SubApp
+                    val app = application as BillingApp
                     externalScope.launch {
                         try {
                             app.repository.updateSubscriptionsFromNetwork(result.subscriptions)
@@ -61,7 +61,7 @@ class SubscriptionMessageService : FirebaseMessagingService() {
     }
 
     companion object {
-        private val TAG = SubscriptionMessageService::class.java.simpleName
+        private val TAG = BillingMessageService::class.java.simpleName
         private const val REMOTE_MESSAGE_SUBSCRIPTIONS_KEY = "currentStatus"
     }
 }

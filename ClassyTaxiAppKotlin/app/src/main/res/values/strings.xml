@@ -168,6 +168,7 @@
     <string name="yearly_premium_plan_text">Yearly Premium Plan</string>
     <string name="prepaid_premium_plan_text">Prepaid Premium Plan</string>
     <string name="basic_paywall_message">Subscribe to a Basic plan</string>
+    <string name="otp_selection_button_text">One Time Purchase</string>
 
     <!-- Subscription -->
     <string name="current_recurring_basic_subscription_message">You have a recurring basic subscription to Classy Taxi</string>
@@ -209,5 +210,16 @@
     <string name="sign_out">Sign Out</string>
     <string name="refresh_menu_text">Refresh</string>
     <string name="menu_drawer_content_description">Classy Taxi Menu Banner</string>
+
+    <!-- Product Selection -->
+    <string name="product_selection_screen_text">Choose between a one-time product or a subscription</string>
+
+
+    <!-- One Time Purchase -->
+    <string name="otp_purchase_screen_text">Purchase a One-Time Product</string>
+    <string name="otp_purchase_button_text">Purchase a One-Time Product</string>
+    <string name="otp_image_content_description">You have a One Time Purchase</string>
+    <string name="one_time_product_purchase_image_content_description">Your one-time product purchase benefit image.</string>
+    <string name="consume_one_time_product_button_text">Consume Your One-Time Product</string>
 
 </resources>

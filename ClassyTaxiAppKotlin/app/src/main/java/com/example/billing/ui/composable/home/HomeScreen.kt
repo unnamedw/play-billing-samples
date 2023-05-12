@@ -1,5 +1,24 @@
+/*
+ * Copyright 2023 Google LLC. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 package com.example.billing.ui.composable.home
 
+import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,11 +53,15 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.billing.R
-import com.example.billing.gpbl.BillingClientLifecycle
 import com.example.billing.ui.BillingViewModel
 import com.example.billing.ui.FirebaseUserViewModel
+import com.example.billing.ui.OneTimeProductPurchaseStatusViewModel
 import com.example.billing.ui.SubscriptionStatusViewModel
+import com.example.billing.ui.composable.otps.OneTimeProductScreens
 import com.example.billing.ui.composable.subscriptions.SubscriptionScreen
 import com.example.billing.ui.theme.ClassyTaxiAppKotlinTheme
 import com.firebase.ui.auth.AuthUI
@@ -49,13 +72,14 @@ import kotlinx.coroutines.launch
 fun ClassyTaxiApp(
     billingViewModel: BillingViewModel,
     subscriptionViewModel: SubscriptionStatusViewModel,
-    billingClientLifecycle: BillingClientLifecycle,
+    oneTimeProductViewModel: OneTimeProductPurchaseStatusViewModel,
     authenticationViewModel: FirebaseUserViewModel,
     modifier: Modifier = Modifier,
 ) {
     ClassyTaxiAppKotlinTheme {
         val drawerState = rememberDrawerState(DrawerValue.Closed)
         val coroutineScope = rememberCoroutineScope()
+        val context = LocalContext.current
 
         ModalNavigationDrawer(
             modifier = modifier,
@@ -65,9 +89,16 @@ fun ClassyTaxiApp(
                     content = {
                         MenuDrawer(items = {
                             DrawerMenuContent(
-                                billingClientLifecycle = billingClientLifecycle,
-                                subscriptionViewModel = subscriptionViewModel,
-                                authenticationViewModel = authenticationViewModel,
+                                onRefresh = {
+                                    oneTimeProductViewModel.manualRefresh()
+                                    subscriptionViewModel.manualRefresh()
+                                },
+                                onSignOut = {
+                                    subscriptionViewModel.unregisterInstanceId()
+                                    AuthUI.getInstance().signOut(context).addOnCompleteListener {
+                                        authenticationViewModel.updateFirebaseUser()
+                                    }
+                                },
                             )
                         })
                     })
@@ -86,7 +117,11 @@ fun ClassyTaxiApp(
                             .padding(contentPadding),
                         color = MaterialTheme.colorScheme.background,
                     ) {
-                        MainNavigation(billingViewModel, subscriptionViewModel)
+                        MainNavigation(
+                            billingViewModel = billingViewModel,
+                            subscriptionStatusViewModel = subscriptionViewModel,
+                            oneTimeProductPurchaseStatusViewModel = oneTimeProductViewModel,
+                        )
                     }
                 }
             },
@@ -97,12 +132,40 @@ fun ClassyTaxiApp(
 @Composable
 private fun MainNavigation(
     billingViewModel: BillingViewModel,
-    subscriptionStatusViewModel: SubscriptionStatusViewModel
+    subscriptionStatusViewModel: SubscriptionStatusViewModel,
+    oneTimeProductPurchaseStatusViewModel: OneTimeProductPurchaseStatusViewModel
 ) {
-    SubscriptionScreen(
-        billingViewModel = billingViewModel,
-        subscriptionStatusViewModel = subscriptionStatusViewModel
-    )
+    val navController = rememberNavController()
+
+    NavHost(navController = navController, startDestination = Screen.ProductSelection.route) {
+        composable(Screen.ProductSelection.route) {
+            ProductSelectionScreen(
+                onNavigateToOneTimeProductScreen = { navController.navigate(Screen.OneTimeProduct.route) },
+                onNavigateToSubscriptionScreen = { navController.navigate(Screen.Subscription.route) },
+            )
+            BackHandler(enabled = true) {
+                navController.popBackStack()
+            }
+        }
+        composable(Screen.Subscription.route) {
+            SubscriptionScreen(
+                billingViewModel = billingViewModel,
+                subscriptionStatusViewModel = subscriptionStatusViewModel,
+            )
+            BackHandler(enabled = true) {
+                navController.popBackStack()
+            }
+        }
+        composable(Screen.OneTimeProduct.route) {
+            OneTimeProductScreens(
+                billingViewModel = billingViewModel,
+                oneTimeProductPurchaseStatusViewModel = oneTimeProductPurchaseStatusViewModel,
+            )
+            BackHandler(enabled = true) {
+                navController.popBackStack()
+            }
+        }
+    }
 }
 
 @Composable
@@ -173,20 +236,17 @@ fun MenuDrawer(
 
 @Composable
 private fun DrawerMenuContent(
-    billingClientLifecycle: BillingClientLifecycle,
-    subscriptionViewModel: SubscriptionStatusViewModel,
-    authenticationViewModel: FirebaseUserViewModel,
+    onRefresh: () -> Unit,
+    onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
     val menuButtonList = listOf(
         Button(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(dimensionResource(id = R.dimen.menu_drawer_body_button_padding)),
             onClick = {
-                billingClientLifecycle.queryPurchases()
-                subscriptionViewModel.manualRefresh()
+                onRefresh()
             }) {
             Text(
                 text = stringResource(id = R.string.refresh_menu_text),
@@ -198,10 +258,7 @@ private fun DrawerMenuContent(
                 .fillMaxWidth()
                 .padding(dimensionResource(id = R.dimen.menu_drawer_body_button_padding)),
             onClick = {
-                subscriptionViewModel.unregisterInstanceId()
-                AuthUI.getInstance().signOut(context).addOnCompleteListener {
-                    authenticationViewModel.updateFirebaseUser()
-                }
+                onSignOut()
             }) {
             Text(
                 text = stringResource(id = R.string.sign_out),
@@ -215,4 +272,10 @@ private fun DrawerMenuContent(
             menuButtonList[it]
         }
     }
+}
+
+sealed class Screen(val route: String) {
+    object ProductSelection : Screen("productSelection")
+    object OneTimeProduct : Screen("oneTimeProduct")
+    object Subscription : Screen("subscription")
 }

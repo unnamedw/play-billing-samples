@@ -14,15 +14,24 @@
  * limitations under the License.
  */
 
-package com.example.billing.ui
 
-import com.android.billingclient.api.Purchase
+package com.example.billing.data.otps
 
+import androidx.room.PrimaryKey
 
-data class ClassyTaxiUIState(
-    val hasRenewableBasic: Boolean? = false,
-    val hasPrepaidBasic: Boolean? = false,
-    val hasRenewablePremium: Boolean? = false,
-    val hasPrepaidPremium: Boolean? = false,
-    val purchases: List<Purchase>? = null,
+@androidx.room.Entity(tableName = "oneTimeProductPurchases")
+data class OneTimeProductPurchaseStatus(
+    // Local fields.
+    @PrimaryKey(autoGenerate = true)
+    var primaryKey: Int = 0,
+    var isLocalPurchase: Boolean = false,
+    var isAlreadyOwned: Boolean = false,
+
+    // Remote fields.
+    var product: String? = null,
+    var purchaseToken: String? = null,
+    var isEntitlementActive: Boolean = false,
+    var isAcknowledged: Boolean = false,
+    var isConsumed: Boolean = false,
+    var quantity: Int = 0
 )

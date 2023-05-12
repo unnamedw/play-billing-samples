@@ -19,23 +19,30 @@ package com.example.billing
 import android.app.Application
 import com.example.billing.Constants.USE_FAKE_SERVER
 import com.example.billing.gpbl.BillingClientLifecycle
-import com.example.billing.data.SubRepository
-import com.example.billing.data.disk.SubLocalDataSource
-import com.example.billing.data.disk.db.AppDatabase
-import com.example.billing.data.network.SubRemoteDataSource
+import com.example.billing.data.BillingRepository
+import com.example.billing.data.disk.BillingLocalDataSource
+import com.example.billing.data.disk.db.OneTimePurchasesDatabase
+import com.example.billing.data.disk.db.SubscriptionPurchasesDatabase
+import com.example.billing.data.network.BillingRemoteDataSource
 import com.example.billing.data.network.firebase.FakeServerFunctions
 import com.example.billing.data.network.firebase.ServerFunctions
 
 /**
  * Android Application class. Used for accessing singletons.
  */
-class SubApp : Application() {
+class BillingApp : Application() {
 
-    private val database: AppDatabase
-        get() = AppDatabase.getInstance(this)
+    private val subscriptionsDatabase: SubscriptionPurchasesDatabase
+        get() = SubscriptionPurchasesDatabase.getInstance(this)
 
-    private val subLocalDataSource: SubLocalDataSource
-        get() = SubLocalDataSource.getInstance(database.subscriptionStatusDao())
+    private val  oneTimeProductPurchasesDatabase: OneTimePurchasesDatabase
+        get() = OneTimePurchasesDatabase.getInstance(this)
+
+    private val billingLocalDataSource: BillingLocalDataSource
+        get() = BillingLocalDataSource.getInstance(
+            subscriptionsDatabase.subscriptionStatusDao(),
+            oneTimeProductPurchasesDatabase.oneTimeProductStatusDao()
+        )
 
     private val serverFunctions: ServerFunctions
         get() {
@@ -46,13 +53,13 @@ class SubApp : Application() {
             }
         }
 
-    private val subRemoteDataSource: SubRemoteDataSource
-        get() = SubRemoteDataSource.getInstance(serverFunctions)
+    private val billingRemoteDataSource: BillingRemoteDataSource
+        get() = BillingRemoteDataSource.getInstance(serverFunctions)
 
     val billingClientLifecycle: BillingClientLifecycle
         get() = BillingClientLifecycle.getInstance(this)
 
-    val repository: SubRepository
-        get() = SubRepository.getInstance(subLocalDataSource, subRemoteDataSource, billingClientLifecycle)
+    val repository: BillingRepository
+        get() = BillingRepository.getInstance(billingLocalDataSource, billingRemoteDataSource, billingClientLifecycle)
 
 }
