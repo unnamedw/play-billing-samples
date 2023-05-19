@@ -159,7 +159,7 @@ fun PremiumEntitlementScreen(
         }
     }
 
-    LaunchedEffect(key1 = currentPremiumPlan) {
+    LaunchedEffect(key1 = currentPremiumPlan, key2 = selectedButton.value) {
         when (currentPremiumPlan) {
             in listOf(Constants.PREMIUM_MONTHLY_PLAN, Constants.PREMIUM_YEARLY_PLAN) -> {
                 if (selectedButton.value == SelectedSubscriptionBasePlan.PREPAID.index) {

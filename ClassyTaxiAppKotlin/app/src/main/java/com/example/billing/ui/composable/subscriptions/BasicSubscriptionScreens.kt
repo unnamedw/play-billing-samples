@@ -223,7 +223,7 @@ fun BasicEntitlementScreen(
         }
     }
 
-    LaunchedEffect(currentBasicPlan) {
+    LaunchedEffect(key1 = currentBasicPlan, key2 = selectedButton.value) {
         when (currentBasicPlan) {
             in listOf(Constants.BASIC_MONTHLY_PLAN, Constants.BASIC_YEARLY_PLAN) -> {
                 if (selectedButton.value == SelectedSubscriptionBasePlan.PREPAID.index) {
