@@ -21,7 +21,7 @@ import { PlayBilling } from "../play-billing";
 import * as serviceAccountPlay from '../service-account.json'
 import { InstanceIdManager } from '../model/InstanceIdManager';
 import { ContentManager } from '../model/ContentManager';
-import { FunctionsErrorCode } from 'firebase-functions/lib/providers/https';
+import { FunctionsErrorCode } from 'firebase-functions/v2/https';
 
 /*
  * This file defines shared resources that are used in functions

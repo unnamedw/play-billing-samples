@@ -24,7 +24,7 @@
 
     <!-- Top bar -->
     <dimen name="top_bar_elevation">4dp</dimen>
-    <dimen name="top_bar_height">56dp</dimen>
+    <dimen name="top_bar_height">64dp</dimen>
     <dimen name="top_bar_row_padding">16dp</dimen>
     <dimen name="top_bar_row_text_weight">1f</dimen>
 
