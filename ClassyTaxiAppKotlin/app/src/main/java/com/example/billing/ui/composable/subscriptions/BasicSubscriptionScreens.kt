@@ -67,8 +67,8 @@ fun BasicTabScreens(
                 BasicEntitlementScreen(
                     contentResource = contentResource,
                     buttons = {
-                        BasicMonthlyEntitlementButtons(
-                            selectedEntitlementButtonMonthly = selectedEntitlementButtonMonthly,
+                        BasicPrepaidEntitlementButtons(
+                            selectedEntitlementButtonPrepaid = selectedEntitlementButtonPrepaid
                         )
                     },
                     message = R.string.current_prepaid_basic_subscription_message,
@@ -86,8 +86,8 @@ fun BasicTabScreens(
                 BasicEntitlementScreen(
                     contentResource = contentResource,
                     buttons = {
-                        BasicPrepaidEntitlementButtons(
-                            selectedEntitlementButtonPrepaid = selectedEntitlementButtonPrepaid
+                        BasicMonthlyEntitlementButtons(
+                            selectedEntitlementButtonMonthly = selectedEntitlementButtonMonthly,
                         )
                     },
                     message = R.string.current_recurring_basic_subscription_message,
