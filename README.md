@@ -21,6 +21,11 @@ For more information about Google Play Billing, see the documentation.
 
 # CHANGELOG
 
+* **2023-05-23**
+  * Updated Classy Taxi Kotlin sample to Google Play Billing Library v6.
+  * Implemented consumable one-time products into the Classy Taxi Kotlin sample.
+* **2022-05-11**
+  * Updated Classy Taxi Kotlin sample to Google Play Billing Library v5.
 * **2021-05-18**
   * Updated all samples for Google Play Billing Library v4.
 * **2021-04-28**
