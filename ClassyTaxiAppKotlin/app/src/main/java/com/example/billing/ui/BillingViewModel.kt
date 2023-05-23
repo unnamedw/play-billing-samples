@@ -174,10 +174,9 @@ class BillingViewModel(application: Application) : AndroidViewModel(application)
         ).setSubscriptionUpdateParams(
             BillingFlowParams.SubscriptionUpdateParams.newBuilder()
                 .setOldPurchaseToken(oldToken)
-                .setReplaceProrationMode(
-                    BillingFlowParams.ProrationMode.IMMEDIATE_AND_CHARGE_FULL_PRICE
-                )
-                .build()
+                .setSubscriptionReplacementMode(
+                    BillingFlowParams.SubscriptionUpdateParams.ReplacementMode.CHARGE_FULL_PRICE
+                ).build()
         ).build()
     }
 
