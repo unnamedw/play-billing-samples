@@ -51,7 +51,7 @@ ext {
 buildscript {
     ext {
         // Library versions.
-        billingVersion = '5.1.0'
+        billingVersion = '6.0.0'
         coroutinesVersion = '1.6.0'
         firebaseUiVersion = '8.0.0'
         glideVersion = '4.13.0'
