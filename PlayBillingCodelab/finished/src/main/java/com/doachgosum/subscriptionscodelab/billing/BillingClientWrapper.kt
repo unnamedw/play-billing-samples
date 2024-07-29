@@ -22,6 +22,7 @@ import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
+import com.android.billingclient.api.BillingClient.ProductType
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
@@ -99,7 +100,7 @@ class BillingClientWrapper(
             QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()
         ) { billingResult, purchaseList ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                if (!purchaseList.isNullOrEmpty()) {
+                if (purchaseList.isNotEmpty()) {
                     _purchases.value = purchaseList
                 } else {
                     _purchases.value = emptyList()
@@ -116,11 +117,17 @@ class BillingClientWrapper(
         val params = QueryProductDetailsParams.newBuilder()
         val productList = mutableListOf<QueryProductDetailsParams.Product>()
         for (product in LIST_OF_PRODUCTS) {
+            val type = when (product) {
+                INAPP_PRODUCT_1 -> ProductType.INAPP
+                else -> ProductType.SUBS
+            }
+
+            Log.d(TAG, "$product, $type")
 
             productList.add(
                 QueryProductDetailsParams.Product.newBuilder()
                     .setProductId(product)
-                    .setProductType(BillingClient.ProductType.SUBS)
+                    .setProductType(type)
                     .build()
             )
         }
@@ -137,12 +144,14 @@ class BillingClientWrapper(
         billingResult: BillingResult,
         productDetailsList: MutableList<ProductDetails>
     ) {
+        Log.d(TAG, "onProductDetailsResponse >> $billingResult, $productDetailsList")
+
         val responseCode = billingResult.responseCode
         val debugMessage = billingResult.debugMessage
         when (responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 var newMap = emptyMap<String, ProductDetails>()
-                if (productDetailsList.isNullOrEmpty()) {
+                if (productDetailsList.isEmpty()) {
                     Log.e(
                         TAG,
                         "onProductDetailsResponse: " +
@@ -177,6 +186,7 @@ class BillingClientWrapper(
         billingResult: BillingResult,
         purchases: List<Purchase>?
     ) {
+        Log.d(TAG, "onPurchasesUpdated >> $billingResult, $purchases")
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK
             && !purchases.isNullOrEmpty()
         ) {
@@ -226,9 +236,14 @@ class BillingClientWrapper(
         private const val TAG = "BillingClient"
 
         // List of subscription product offerings
+        private const val INAPP_PRODUCT_1 = "inappproduct1"
         private const val BASIC_SUB = "up_basic_sub"
         private const val PREMIUM_SUB = "up_premium_sub"
 
-        private val LIST_OF_PRODUCTS = listOf(BASIC_SUB, PREMIUM_SUB)
+        private val LIST_OF_PRODUCTS = listOf(
+            INAPP_PRODUCT_1,
+//            BASIC_SUB,
+//            PREMIUM_SUB
+        )
     }
 }

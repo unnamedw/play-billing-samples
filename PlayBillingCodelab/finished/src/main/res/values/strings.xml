@@ -34,6 +34,8 @@
     <string name="subscription_composable_name">subscription</string>
 
     <!-- Composable Text Strings -->
+    <string name="inapp_text">InApp products</string>
+    <string name="inapp_product1_text">InApp product 1</string>
     <string name="basic_sub_text">Basic Subscription</string>
     <string name="monthly_basic_sub_text">Monthly Basic Subscription</string>
     <string name="yearly_sub_text">Yearly Basic Subscription</string>

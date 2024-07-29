@@ -22,6 +22,7 @@ package com.doachgosum.subscriptionscodelab
 object Constants {
 
     // Billing Client ProductDetails Offer Tags
+    const val INAPP_PRODUCT_1 = "inappproduct1"
     const val MONTHLY_BASIC_PLANS_TAG = "monthlybasic"
     const val MONTHLY_PREMIUM_PLANS_TAG = "monthlypremium"
     const val YEARLY_BASIC_PLANS_TAG = "yearlybasic"
@@ -31,6 +32,7 @@ object Constants {
 
     // Compose Navigation route Strings
     const val SUBSCRIPTION_ROUTE = "subscription"
+    const val INAPP_ROUTE = "inapp"
     const val BASIC_BASE_PLANS_ROUTE = "basicBasePlans"
     const val PREMIUM_BASE_PLANS_ROUTE = "premiumBasePlans"
 

@@ -43,6 +43,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.doachgosum.subscriptionscodelab.Constants
 import com.doachgosum.subscriptionscodelab.Constants.BASIC_BASE_PLANS_ROUTE
+import com.doachgosum.subscriptionscodelab.Constants.INAPP_PRODUCT_1
+import com.doachgosum.subscriptionscodelab.Constants.INAPP_ROUTE
 import com.doachgosum.subscriptionscodelab.Constants.MONTHLY_BASIC_PLANS_TAG
 import com.doachgosum.subscriptionscodelab.Constants.MONTHLY_PREMIUM_PLANS_TAG
 import com.doachgosum.subscriptionscodelab.Constants.PREMIUM_BASE_PLANS_ROUTE
@@ -72,6 +74,12 @@ fun SubscriptionNavigationComponent(
                 navController = navController,
             )
         }
+        composable(route = INAPP_ROUTE) {
+            InApp(
+                productsForSale = productsForSale,
+                viewModel = viewModel
+            )
+        }
         composable(route = BASIC_BASE_PLANS_ROUTE) {
             BasicBasePlans(
                 productsForSale = productsForSale,
@@ -94,12 +102,41 @@ private fun Subscription(
     CenteredSurfaceColumn {
         val buttonModels = remember(navController) {
             listOf(
+                ButtonModel(R.string.inapp_text) {
+                    navController.navigate(route = INAPP_ROUTE)
+                },
                 ButtonModel(R.string.basic_sub_text) {
                     navController.navigate(route = BASIC_BASE_PLANS_ROUTE)
                 },
                 ButtonModel(R.string.premium_sub_text) {
                     navController.navigate(route = PREMIUM_BASE_PLANS_ROUTE)
                 }
+            )
+        }
+        ButtonGroup(buttonModels = buttonModels)
+    }
+}
+
+@Composable
+private fun InApp(
+    productsForSale: MainState,
+    viewModel: MainViewModel,
+) {
+    val context = LocalContext.current
+    val activity = context.findActivity()
+    CenteredSurfaceColumn {
+        val buttonModels = remember(productsForSale, viewModel, activity) {
+            listOf(
+                ButtonModel(R.string.inapp_product1_text) {
+                    productsForSale.inappProductDetails?.let {
+                        viewModel.buy(
+                            productDetails = it,
+                            currentPurchases = null,
+                            tag = INAPP_PRODUCT_1,
+                            activity = activity
+                        )
+                    }
+                },
             )
         }
         ButtonGroup(buttonModels = buttonModels)

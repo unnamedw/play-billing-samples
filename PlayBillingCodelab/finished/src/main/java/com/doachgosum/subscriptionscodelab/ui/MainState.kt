@@ -24,6 +24,7 @@ data class MainState(
     val hasPrepaidBasic: Boolean? = false,
     val hasRenewablePremium: Boolean? = false,
     val hasPrepaidPremium: Boolean? = false,
+    val inappProductDetails: ProductDetails? = null,
     val basicProductDetails: ProductDetails? = null,
     val premiumProductDetails: ProductDetails? = null,
     val purchases: List<Purchase>? = null,

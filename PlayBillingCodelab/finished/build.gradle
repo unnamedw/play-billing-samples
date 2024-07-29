@@ -92,6 +92,8 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
 
+    implementation 'com.google.code.gson:gson:2.11.0'
+
     // Google PLay Billing library.
     def billing_version = "7.0.0"
     implementation "com.android.billingclient:billing-ktx:$billing_version"

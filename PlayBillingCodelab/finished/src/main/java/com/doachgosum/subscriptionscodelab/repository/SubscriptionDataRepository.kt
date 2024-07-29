@@ -59,6 +59,13 @@ class SubscriptionDataRepository(billingClientWrapper: BillingClientWrapper) {
         }
     }
 
+    val inappProductDetails: Flow<ProductDetails> =
+        billingClientWrapper.productWithProductDetails.filter {
+            it.containsKey(
+                INAPP_PRODUCT_1
+            )
+        }.map { it[INAPP_PRODUCT_1]!! }
+
     // ProductDetails for the basic subscription.
     val basicProductDetails: Flow<ProductDetails> =
         billingClientWrapper.productWithProductDetails.filter {
@@ -83,6 +90,7 @@ class SubscriptionDataRepository(billingClientWrapper: BillingClientWrapper) {
 
     companion object {
         // List of subscription product offerings
+        private const val INAPP_PRODUCT_1 = "inappproduct1"
         private const val BASIC_SUB = "up_basic_sub"
         private const val PREMIUM_SUB = "up_premium_sub"
     }

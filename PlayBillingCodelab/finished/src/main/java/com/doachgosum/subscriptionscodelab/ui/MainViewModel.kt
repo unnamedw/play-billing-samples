@@ -58,14 +58,18 @@ class MainViewModel(application: Application) :
 
     // The productsForSaleFlows object combines all the Product flows into one for emission.
     val productsForSaleFlows = combine(
-        repo.basicProductDetails,
-        repo.premiumProductDetails
-    ) { basicProductDetails,
-        premiumProductDetails
+        repo.inappProductDetails,
+//        repo.basicProductDetails,
+//        repo.premiumProductDetails,
+    ) {
+      inappProductDetails
+//      basicProductDetails,
+//      premiumProductDetails
         ->
         MainState(
-            basicProductDetails = basicProductDetails,
-            premiumProductDetails = premiumProductDetails
+            inappProductDetails = inappProductDetails.firstOrNull(),
+            basicProductDetails = null,
+            premiumProductDetails = null
         )
     }
 
@@ -295,7 +299,7 @@ class MainViewModel(application: Application) :
                     billingParams.build()
                 )
             }
-        } else if (!currentPurchases.isNullOrEmpty() &&
+        } else if (currentPurchases.isNotEmpty() &&
             currentPurchases.size > MAX_CURRENT_PURCHASES_ALLOWED
         ) {
             // The developer has allowed users  to have more than 1 purchase, so they need to

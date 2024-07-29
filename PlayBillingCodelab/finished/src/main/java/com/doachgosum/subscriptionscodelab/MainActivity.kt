@@ -31,7 +31,6 @@ import com.doachgosum.subscriptionscodelab.Constants.PREPAID_BASIC_PLANS_TAG
 import com.doachgosum.subscriptionscodelab.Constants.PREPAID_PREMIUM_PLANS_TAG
 import com.doachgosum.subscriptionscodelab.Constants.YEARLY_BASIC_PLANS_TAG
 import com.doachgosum.subscriptionscodelab.Constants.YEARLY_PREMIUM_PLANS_TAG
-import com.doachgosum.subscriptionscodelab.R
 import com.doachgosum.subscriptionscodelab.ui.ButtonModel
 import com.doachgosum.subscriptionscodelab.ui.MainState
 import com.doachgosum.subscriptionscodelab.ui.MainViewModel
