@@ -20,6 +20,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.android.billingclient.api.Purchase
 import com.example.billing.BillingApp
 import com.example.billing.data.BillingRepository
 import com.example.billing.data.subscriptions.SubscriptionStatus
@@ -53,7 +54,9 @@ class SubscriptionStatusViewModel(
             hasPrepaidPremium = hasPrepaidPremium,
             hasRenewableBasic = hasRenewableBasic,
             hasRenewablePremium = hasRenewablePremium,
-        )
+        ).purchases?.forEach { purchase: Purchase ->
+            purchase.purchaseState
+        }
     }
 
     /**
